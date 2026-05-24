@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
-import '../../../core/constants/integrate api services/shu_api_constant.dart';
+import '../../../core/constants/integrate api services/shu/shu_api_constant.dart';
 
 class SocialHealthApiService {
   static const String _loginMutation = r'''

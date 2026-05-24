@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../core/constants/integrate api services/shu_api_constant.dart';
+import '../../../core/constants/integrate api services/shu/shu_api_constant.dart';
 import '../../auth/auth_provider.dart';
 import 'social_health_api_service.dart';
 import 'social_health_updates_screen.dart';

@@ -1,4 +1,4 @@
-import '../api_constants.dart';
+import '../../api_constants.dart';
 
 class ShuApiConstants {
   // Main Tawi-Tawi backend

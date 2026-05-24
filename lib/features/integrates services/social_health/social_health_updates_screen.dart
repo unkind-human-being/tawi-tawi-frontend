@@ -7,7 +7,7 @@ import 'package:provider/provider.dart';
 import 'social_health_rhu_directory_screen.dart';
 
 
-import '../../../core/constants/integrate api services/shu_api_constant.dart';
+import '../../../core/constants/integrate api services/shu/shu_api_constant.dart';
 import 'rhu_ai_chat_sheet.dart';
 import 'auth/social_health_auth_provider.dart';
 
