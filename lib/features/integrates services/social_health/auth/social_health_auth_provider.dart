@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 
-import 'social_health_api_service.dart';
-import 'social_health_secure_storage.dart';
+import '../social_health_api_service.dart';
+import '../social_health_secure_storage.dart';
 
 enum SocialHealthAuthStatus {
   initial,

@@ -20,6 +20,10 @@ class AuthRepository {
         _googleAuthService = googleAuthService,
         _metaAuthService = metaAuthService;
 
+  Future<String?> getToken() async {
+    return _secureStorageService.getToken();
+  }
+
   Future<UserModel> register({
     required String fullName,
     required String email,

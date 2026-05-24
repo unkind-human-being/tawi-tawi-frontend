@@ -34,6 +34,20 @@ class _SocialHealthRegisterScreenState
   bool _isSaving = false;
   bool _acceptedTerms = false;
 
+  static const String _registerMutation = r'''
+mutation RegisterUser($fullName: String!, $email: String!, $password: String!) {
+  register(fullName: $fullName, email: $email, password: $password) {
+    token
+    user {
+      id
+      fullName
+      email
+      status
+    }
+  }
+}
+''';
+
   @override
   void dispose() {
     _fullNameController.dispose();
@@ -63,26 +77,27 @@ class _SocialHealthRegisterScreenState
     });
 
     try {
-      final Uri registerUri = Uri.parse(
-        '${ShuApiConstants.register}/api/auth/register',
-      );
-
       final http.Response response = await http
           .post(
-            registerUri,
+            Uri.parse(ShuApiConstants.graphql),
             headers: const <String, String>{
               'Content-Type': 'application/json',
               'Accept': 'application/json',
             },
             body: jsonEncode(<String, dynamic>{
-              'fullName': _fullNameController.text.trim(),
-              'email': _emailController.text.trim(),
-              'phoneNumber': _phoneController.text.trim(),
-              'password': _passwordController.text.trim(),
-              'role': 'public_user',
+              'query': _registerMutation,
+              'variables': <String, dynamic>{
+                'fullName': _fullNameController.text.trim(),
+                'email': _emailController.text.trim(),
+                'password': _passwordController.text.trim(),
+              },
             }),
           )
           .timeout(const Duration(seconds: 25));
+
+      debugPrint('SHU REGISTER URL: ${ShuApiConstants.graphql}');
+      debugPrint('SHU REGISTER STATUS: ${response.statusCode}');
+      debugPrint('SHU REGISTER BODY: ${response.body}');
 
       final Map<String, dynamic> decoded = _decodeResponse(response.body);
 
@@ -94,6 +109,14 @@ class _SocialHealthRegisterScreenState
         );
 
         throw Exception(message);
+      }
+
+      _throwIfGraphqlHasErrors(decoded);
+
+      final Map<String, dynamic> registerData = _readRegisterData(decoded);
+
+      if (registerData.isEmpty) {
+        throw Exception('Registration response is missing account data.');
       }
 
       if (!mounted) {
@@ -132,12 +155,21 @@ class _SocialHealthRegisterScreenState
   }
 
   Map<String, dynamic> _decodeResponse(String body) {
-    if (body.trim().isEmpty) {
+    final String cleanBody = body.trim();
+
+    if (cleanBody.isEmpty) {
       return <String, dynamic>{};
     }
 
+    if (cleanBody.startsWith('<!DOCTYPE html') ||
+        cleanBody.startsWith('<html')) {
+      throw Exception(
+        'Backend returned HTML instead of JSON. Please check if the app is calling the correct /graphql endpoint.',
+      );
+    }
+
     try {
-      final dynamic decoded = jsonDecode(body);
+      final dynamic decoded = jsonDecode(cleanBody);
 
       if (decoded is Map<String, dynamic>) {
         return decoded;
@@ -145,8 +177,52 @@ class _SocialHealthRegisterScreenState
 
       return <String, dynamic>{};
     } catch (_) {
-      return <String, dynamic>{};
+      throw Exception('Invalid backend response. Expected JSON.');
     }
+  }
+
+  void _throwIfGraphqlHasErrors(Map<String, dynamic> json) {
+    final dynamic errors = json['errors'];
+
+    if (errors is List && errors.isNotEmpty) {
+      final dynamic firstError = errors.first;
+
+      if (firstError is Map<String, dynamic>) {
+        final dynamic message = firstError['message'];
+
+        if (message != null && message.toString().trim().isNotEmpty) {
+          throw Exception(message.toString());
+        }
+      }
+
+      throw Exception('Unable to create account.');
+    }
+  }
+
+  Map<String, dynamic> _readRegisterData(Map<String, dynamic> json) {
+    final dynamic data = json['data'];
+
+    if (data is Map<String, dynamic>) {
+      final dynamic register = data['register'];
+
+      if (register is Map<String, dynamic>) {
+        return register;
+      }
+
+      final dynamic registerUser = data['registerUser'];
+
+      if (registerUser is Map<String, dynamic>) {
+        return registerUser;
+      }
+
+      final dynamic socialHealthRegister = data['socialHealthRegister'];
+
+      if (socialHealthRegister is Map<String, dynamic>) {
+        return socialHealthRegister;
+      }
+    }
+
+    return <String, dynamic>{};
   }
 
   String _readString(

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'social_health_auth_provider.dart';
+import 'auth/social_health_auth_provider.dart';
 import 'social_health_register_screen.dart';
 
 class SocialHealthLoginScreen extends StatefulWidget {
@@ -27,7 +27,7 @@ class _SocialHealthLoginScreenState extends State<SocialHealthLoginScreen> {
 
   bool get _isLocalLoginReady {
     return _isValidEmail(_emailController.text.trim()) &&
-        _passwordController.text.trim().length >= 8;
+        _passwordController.text.trim().isNotEmpty;
   }
 
   @override
@@ -63,7 +63,7 @@ class _SocialHealthLoginScreenState extends State<SocialHealthLoginScreen> {
     }
 
     if (!_isLocalLoginReady) {
-      _showError('Please enter a valid email and password first.');
+      _showError('Please enter your email and password first.');
       return;
     }
 
@@ -100,7 +100,7 @@ class _SocialHealthLoginScreenState extends State<SocialHealthLoginScreen> {
 
       // No manual navigation needed.
       // SocialHealthGatewayScreen will detect authenticated status
-      // and show SocialHealthUpdatesScreen / placeholder automatically.
+      // and show SocialHealthUpdatesScreen automatically.
       return;
     }
 
@@ -646,7 +646,8 @@ class _LoginCard extends StatelessWidget {
                     ),
                     validator: _validatePassword,
                   ),
-                  if (authProvider.errorMessage != null) ...<Widget>[
+                  if (authProvider.errorMessage != null &&
+                      authProvider.errorMessage!.trim().isNotEmpty) ...<Widget>[
                     const SizedBox(height: 16),
                     _InlineErrorMessage(
                       message: authProvider.errorMessage!,
@@ -714,10 +715,6 @@ class _LoginCard extends StatelessWidget {
 
     if (text.isEmpty) {
       return 'Password is required.';
-    }
-
-    if (text.length < 8) {
-      return 'Password must be at least 8 characters.';
     }
 
     return null;
@@ -788,7 +785,7 @@ class _SecurityNote extends StatelessWidget {
           SizedBox(width: 10),
           Expanded(
             child: Text(
-              'For security, login will only continue after the email and password format are valid.',
+              'Your login is securely checked through the Tawi-Tawi backend gateway before entering the RHU Social Health module.',
               style: TextStyle(
                 color: Color(0xFF64748B),
                 height: 1.4,

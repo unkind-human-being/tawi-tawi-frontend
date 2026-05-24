@@ -4,10 +4,12 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
+import 'social_health_rhu_directory_screen.dart';
+
 
 import '../../../core/constants/integrate api services/shu_api_constant.dart';
 import 'rhu_ai_chat_sheet.dart';
-import 'social_health_auth_provider.dart';
+import 'auth/social_health_auth_provider.dart';
 
 class SocialHealthUpdatesScreen extends StatefulWidget {
   const SocialHealthUpdatesScreen({super.key});
@@ -49,6 +51,8 @@ class _SocialHealthUpdatesScreenState extends State<SocialHealthUpdatesScreen> {
     });
   }
 
+
+
   @override
   void dispose() {
     _scrollController.removeListener(_handleScroll);
@@ -78,6 +82,15 @@ class _SocialHealthUpdatesScreenState extends State<SocialHealthUpdatesScreen> {
 
   bool get _canShowMore {
     return _visibleItemCount < _filteredItems.length || _hasMore;
+  }
+
+
+  void _openRhuDirectory() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const SocialHealthRhuDirectoryScreen(),
+      ),
+    );
   }
 
   void _handleScroll() {
@@ -221,7 +234,7 @@ class _SocialHealthUpdatesScreenState extends State<SocialHealthUpdatesScreen> {
     final List<_FeedItem> loadedItems = <_FeedItem>[];
 
     final Map<String, dynamic> postsResponse = await _getJson(
-      '${ShuApiConstants.posts}/api/posts/public',
+      ShuApiConstants.posts,
       queryParameters: <String, String>{
         'page': page.toString(),
         'limit': _pageSize.toString(),
@@ -238,7 +251,7 @@ class _SocialHealthUpdatesScreenState extends State<SocialHealthUpdatesScreen> {
     );
 
     final Map<String, dynamic> eventsResponse = await _getJson(
-      '${ShuApiConstants.events}/api/events/public',
+      ShuApiConstants.events,
       queryParameters: <String, String>{
         'page': page.toString(),
         'limit': _pageSize.toString(),
@@ -255,7 +268,7 @@ class _SocialHealthUpdatesScreenState extends State<SocialHealthUpdatesScreen> {
     );
 
     final Map<String, dynamic> surveysResponse = await _getJson(
-      '${ShuApiConstants.surveys}/api/surveys/public',
+      ShuApiConstants.surveys,
       queryParameters: <String, String>{
         'page': page.toString(),
         'limit': _pageSize.toString(),
@@ -327,17 +340,27 @@ class _SocialHealthUpdatesScreenState extends State<SocialHealthUpdatesScreen> {
   }
 
   Map<String, dynamic> _handleResponse(http.Response response) {
+    final String body = response.body.trim();
+
     Map<String, dynamic> decoded = <String, dynamic>{};
 
-    if (response.body.trim().isNotEmpty) {
+    if (body.isNotEmpty) {
+      if (body.startsWith('<!DOCTYPE html') || body.startsWith('<html')) {
+        throw const _SocialHealthApiException(
+          'Backend returned HTML instead of JSON. The Social Health proxy route is probably wrong or not mounted in the Tawi-Tawi backend.',
+        );
+      }
+
       try {
-        final dynamic parsed = jsonDecode(response.body);
+        final dynamic parsed = jsonDecode(body);
 
         if (parsed is Map<String, dynamic>) {
           decoded = parsed;
         }
       } catch (_) {
-        decoded = <String, dynamic>{};
+        throw const _SocialHealthApiException(
+          'Invalid backend response. Expected JSON from the Social Health API.',
+        );
       }
     }
 
@@ -463,11 +486,13 @@ class _SocialHealthUpdatesScreenState extends State<SocialHealthUpdatesScreen> {
     }
 
     try {
-      await _postJson(
-        '${ShuApiConstants.events}/api/event-registrations/event/${Uri.encodeComponent(item.id)}',
-        token: authProvider.token,
-        body: input.toJson(),
-      );
+     await _postJson(
+      ShuApiConstants.eventRegistration(
+        Uri.encodeComponent(item.id),
+      ),
+      token: authProvider.token,
+      body: input.toJson(),
+    );
 
       if (!mounted) {
         return;
@@ -525,8 +550,10 @@ class _SocialHealthUpdatesScreenState extends State<SocialHealthUpdatesScreen> {
     }
 
     try {
-      await _postJson(
-        '${ShuApiConstants.surveys}/api/survey-responses/survey/${Uri.encodeComponent(item.id)}',
+     await _postJson(
+        ShuApiConstants.surveyResponse(
+          Uri.encodeComponent(item.id),
+        ),
         token: authProvider.token,
         body: input.toJson(),
       );
@@ -653,7 +680,7 @@ class _SocialHealthUpdatesScreenState extends State<SocialHealthUpdatesScreen> {
         },
         onRhuProfiles: () {
           Navigator.of(context).pop();
-          _showComingSoon('RHU Profiles');
+          _openRhuDirectory();
         },
         onProfile: () {
           Navigator.of(context).pop();
@@ -685,9 +712,7 @@ class _SocialHealthUpdatesScreenState extends State<SocialHealthUpdatesScreen> {
               SliverToBoxAdapter(
                 child: _HeroHeader(
                   userEmail: userEmail,
-                  onRhuProfiles: () {
-                    _showComingSoon('RHU Profiles');
-                  },
+                  onRhuProfiles: _openRhuDirectory,
                   onMessages: () {
                     _showComingSoon('Messages');
                   },
@@ -706,9 +731,7 @@ class _SocialHealthUpdatesScreenState extends State<SocialHealthUpdatesScreen> {
                     totalLoaded: _items.length,
                     visibleCount: displayedItems.length,
                     canLoadMore: _canShowMore,
-                    onRhuTap: () {
-                      _showComingSoon('RHU Profiles');
-                    },
+                    onRhuTap: _openRhuDirectory,
                   ),
                 ),
               ),

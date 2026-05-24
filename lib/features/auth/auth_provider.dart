@@ -18,25 +18,50 @@ class AuthProvider extends ChangeNotifier {
   UserModel? _user;
   bool _isLoading = false;
   String? _errorMessage;
+  String? _token;
 
   AuthStatus get status => _status;
   UserModel? get user => _user;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  String? get token => _token;
+
+  bool get isAuthenticated => _status == AuthStatus.authenticated;
+
+  String get userName {
+    final UserModel? currentUser = _user;
+    if (currentUser == null) return '';
+    return currentUser.fullName;
+  }
+
+  String get userEmail {
+    final UserModel? currentUser = _user;
+    if (currentUser == null) return '';
+    return currentUser.email;
+  }
 
   Future<void> initialize() async {
     _setLoading(true);
+    _clearError();
 
     try {
-      final currentUser = await _authRepository.getCurrentUser();
+      final UserModel? currentUser = await _authRepository.getCurrentUser();
+      final String? savedToken = await _authRepository.getToken();
 
-      if (currentUser == null) {
+      if (currentUser == null ||
+          savedToken == null ||
+          savedToken.trim().isEmpty) {
+        _user = null;
+        _token = null;
         _status = AuthStatus.unauthenticated;
       } else {
         _user = currentUser;
+        _token = savedToken;
         _status = AuthStatus.authenticated;
       }
     } catch (_) {
+      _user = null;
+      _token = null;
       _status = AuthStatus.unauthenticated;
     } finally {
       _setLoading(false);
@@ -57,6 +82,8 @@ class AuthProvider extends ChangeNotifier {
         email: email,
         password: password,
       );
+
+      _token = await _authRepository.getToken();
 
       _status = AuthStatus.authenticated;
       notifyListeners();
@@ -82,6 +109,8 @@ class AuthProvider extends ChangeNotifier {
         email: email,
         password: password,
       );
+
+      _token = await _authRepository.getToken();
 
       _status = AuthStatus.authenticated;
       notifyListeners();
@@ -123,9 +152,73 @@ class AuthProvider extends ChangeNotifier {
       // Still logout locally even if something fails.
     } finally {
       _user = null;
+      _token = null;
       _status = AuthStatus.unauthenticated;
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  Future<bool> loginWithGoogle() async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      _user = await _authRepository.loginWithGoogle();
+
+      _token = await _authRepository.getToken();
+
+      _status = AuthStatus.authenticated;
+      notifyListeners();
+      return true;
+    } catch (error) {
+      _errorMessage = _cleanError(error);
+      notifyListeners();
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<bool> loginWithGoogleIdToken(String idToken) async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      _user = await _authRepository.loginWithGoogleIdToken(idToken);
+
+      _token = await _authRepository.getToken();
+
+      _status = AuthStatus.authenticated;
+      notifyListeners();
+      return true;
+    } catch (error) {
+      _errorMessage = _cleanError(error);
+      notifyListeners();
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<bool> loginWithMeta() async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      _user = await _authRepository.loginWithMeta();
+
+      _token = await _authRepository.getToken();
+
+      _status = AuthStatus.authenticated;
+      notifyListeners();
+      return true;
+    } catch (error) {
+      _errorMessage = _cleanError(error);
+      notifyListeners();
+      return false;
+    } finally {
+      _setLoading(false);
     }
   }
 
@@ -140,69 +233,5 @@ class AuthProvider extends ChangeNotifier {
 
   String _cleanError(Object error) {
     return error.toString().replaceFirst('Exception: ', '');
-  }
-
-
-
-
-
-  Future<bool> loginWithGoogle() async {
-    _setLoading(true);
-    _clearError();
-
-    try {
-      _user = await _authRepository.loginWithGoogle();
-
-      _status = AuthStatus.authenticated;
-      notifyListeners();
-      return true;
-    } catch (error) {
-      _errorMessage = _cleanError(error);
-      notifyListeners();
-      return false;
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-
-
-  Future<bool> loginWithGoogleIdToken(String idToken) async {
-    _setLoading(true);
-    _clearError();
-
-    try {
-      _user = await _authRepository.loginWithGoogleIdToken(idToken);
-
-      _status = AuthStatus.authenticated;
-      notifyListeners();
-      return true;
-    } catch (error) {
-      _errorMessage = _cleanError(error);
-      notifyListeners();
-      return false;
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-
-  Future<bool> loginWithMeta() async {
-    _setLoading(true);
-    _clearError();
-
-    try {
-      _user = await _authRepository.loginWithMeta();
-
-      _status = AuthStatus.authenticated;
-      notifyListeners();
-      return true;
-    } catch (error) {
-      _errorMessage = _cleanError(error);
-      notifyListeners();
-      return false;
-    } finally {
-      _setLoading(false);
-    }
   }
 }

@@ -3,7 +3,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:provider/provider.dart';
-import 'features/integrates services/social_health/social_health_auth_provider.dart';
+import 'features/integrates services/social_health/auth/social_health_auth_provider.dart';
 
 
 

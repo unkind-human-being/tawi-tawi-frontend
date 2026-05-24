@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../social_health_login_screen.dart';
+
+import '../social_health_gateway_screen.dart';
 
 class ShuIntroductionScreen extends StatefulWidget {
   const ShuIntroductionScreen({super.key});
@@ -34,7 +35,7 @@ class _ShuIntroductionScreenState extends State<ShuIntroductionScreen> {
 
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => const SocialHealthLoginScreen(),
+        builder: (_) => const SocialHealthGatewayScreen(),
       ),
     );
   }

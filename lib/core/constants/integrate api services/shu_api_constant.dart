@@ -1,27 +1,43 @@
+import '../api_constants.dart';
+
 class ShuApiConstants {
-  // Social Health / RHU backend
-  // This is separate from the main Tawi-Tawi backend.
-  static const String baseUrl = String.fromEnvironment(
-    'SOCIAL_HEALTH_API_BASE_URL',
-    defaultValue: 'https://rhu-project.onrender.com',
-  );
+  // Main Tawi-Tawi backend
+  static const String baseUrl = ApiConstants.baseUrl;
 
-  static const String login = '$baseUrl/api/auth/login';
+  // GraphQL endpoint:
+  // Flutter -> Tawi-Tawi Backend /graphql
+  static const String graphql = ApiConstants.graphql;
 
-  static const String me = '$baseUrl/api/auth/me';
+  // IMPORTANT:
+  // This must match the service name registered in:
+  // tawi-tawi-backend/src/gateway/serviceClients.js
+  //
+  // Your backend service name is "shu", not "rhu".
+  static const String serviceName = 'shu';
 
-  static const String register = '$baseUrl/api/auth/register';
+  // REST proxy route mounted by Tawi-Tawi backend:
+  // app.use('/api/shu', proxy)
+  static const String gatewayPrefix = '$baseUrl/api/shu';
 
-  static const String posts = '$baseUrl/api/posts/public';
+  static const String posts = '$gatewayPrefix/posts/public';
 
-  static const String events = '$baseUrl/api/events/public';
+  static const String events = '$gatewayPrefix/events/public';
 
-  static const String surveys = '$baseUrl/api/surveys/public';
+  static const String surveys = '$gatewayPrefix/surveys/public';
 
-  static const String appointments = '$baseUrl/api/appointments';
+  static String eventRegistration(String eventId) {
+    return '$gatewayPrefix/event-registrations/event/$eventId';
+  }
 
-  static const String rhuAiChat = String.fromEnvironment(
-    'RHU_AI_CHAT_URL',
-    defaultValue: 'https://rhu-ai.onrender.com/api/ai/chat',
-  );
+  static String surveyResponse(String surveyId) {
+    return '$gatewayPrefix/survey-responses/survey/$surveyId';
+  }
+
+  static const String rhus = '$gatewayPrefix/rhus';
+
+  static String appointmentSetting(String rhuId) {
+    return '$gatewayPrefix/appointment-settings/rhu/$rhuId';
+  }
+
+  static const String rhuAiChat = '$gatewayPrefix/ai/chat';
 }
