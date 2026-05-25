@@ -169,8 +169,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return 'Password is required.';
     }
 
-    if (password.length < 20) {
-      return 'Password must be at least 20 characters.';
+    if (password.length < 8) {
+      return 'Password must be at least 8 characters.';
     }
 
     return null;

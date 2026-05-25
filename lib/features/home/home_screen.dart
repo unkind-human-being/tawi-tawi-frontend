@@ -105,7 +105,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final labels = ['Home', 'Scan', 'Digital ID', 'History', 'Account'];
     _openPlaceholder(labels[index]);
   }
-
+  //shu funtion
   void _openHealthModule() {
     Navigator.of(context).push(
       MaterialPageRoute(

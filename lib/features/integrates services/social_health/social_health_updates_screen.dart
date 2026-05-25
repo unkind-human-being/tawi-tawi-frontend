@@ -5,6 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'social_health_rhu_directory_screen.dart';
+import 'appointment/social_health_my_appointments_screen.dart';
+import 'appointment/social_health_apply_appointment_screen.dart';
+
 
 
 import '../../../core/constants/integrate api services/shu/shu_api_constant.dart';
@@ -83,7 +86,30 @@ class _SocialHealthUpdatesScreenState extends State<SocialHealthUpdatesScreen> {
   bool get _canShowMore {
     return _visibleItemCount < _filteredItems.length || _hasMore;
   }
+  Future<void> _openApplyAppointment() async {
+    final bool? submitted = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => const SocialHealthApplyAppointmentScreen(),
+      ),
+    );
 
+    if (submitted == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Appointment submitted. Check My Activity for status.'),
+          backgroundColor: Color(0xFF16A34A),
+        ),
+      );
+    }
+  }
+
+  void _openMyAppointments() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const SocialHealthMyAppointmentsScreen(),
+      ),
+    );
+  }
 
   void _openRhuDirectory() {
     Navigator.of(context).push(
@@ -676,7 +702,7 @@ class _SocialHealthUpdatesScreenState extends State<SocialHealthUpdatesScreen> {
         userEmail: userEmail,
         onApplyAppointment: () {
           Navigator.of(context).pop();
-          _showComingSoon('Apply Appointment');
+          _openApplyAppointment();
         },
         onRhuProfiles: () {
           Navigator.of(context).pop();
@@ -696,7 +722,7 @@ class _SocialHealthUpdatesScreenState extends State<SocialHealthUpdatesScreen> {
         },
         onActivityHistory: () {
           Navigator.of(context).pop();
-          _showComingSoon('My RHU Activity');
+          _openMyAppointments();
         },
         onLogout: () {
           Navigator.of(context).pop();
@@ -719,9 +745,7 @@ class _SocialHealthUpdatesScreenState extends State<SocialHealthUpdatesScreen> {
                   onNotifications: () {
                     _showComingSoon('Notifications');
                   },
-                  onActivityHistory: () {
-                    _showComingSoon('My RHU Activity');
-                  },
+                  onActivityHistory: _openMyAppointments,
                 ),
               ),
               SliverToBoxAdapter(

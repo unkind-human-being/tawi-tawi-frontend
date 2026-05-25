@@ -25,6 +25,14 @@ class ShuApiConstants {
 
   static const String surveys = '$gatewayPrefix/surveys/public';
 
+  static const String myAppointments = '$gatewayPrefix/appointments/my';
+
+  static const String appointments = '$gatewayPrefix/appointments';
+
+
+  static const String appointmentPhotoUpload =
+      '$gatewayPrefix/uploads/appointment-photo';
+
   static String eventRegistration(String eventId) {
     return '$gatewayPrefix/event-registrations/event/$eventId';
   }
