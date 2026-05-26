@@ -34,6 +34,10 @@ class _SocialHealthUpdatesScreenState extends State<SocialHealthUpdatesScreen> {
   static const int _pageSize = 5;
   static const int _visibleStep = 5;
 
+  int _unreadNotificationCount = 0;
+  bool _isLoadingNotificationCount = false;
+
+
   bool _isLoading = false;
   bool _isLoadingMore = false;
   bool _hasMore = true;
@@ -55,6 +59,7 @@ class _SocialHealthUpdatesScreenState extends State<SocialHealthUpdatesScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadFeed();
+      _loadNotificationUnreadCount();
     });
   }
 
@@ -108,13 +113,83 @@ class _SocialHealthUpdatesScreenState extends State<SocialHealthUpdatesScreen> {
   }
   
 
+  Future<void> _loadNotificationUnreadCount() async {
+    if (_isLoadingNotificationCount) {
+      return;
+    }
 
-  void _openNotifications() {
-    Navigator.of(context).push(
+    setState(() {
+      _isLoadingNotificationCount = true;
+    });
+
+    try {
+      final String token = context.read<AuthProvider>().token ?? '';
+
+      if (token.trim().isEmpty) {
+        return;
+      }
+
+      final http.Response response = await http
+          .get(
+            Uri.parse(ShuApiConstants.unreadNotificationsCount),
+            headers: <String, String>{
+              'Accept': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+          )
+          .timeout(const Duration(seconds: 20));
+
+      final Map<String, dynamic> decoded = _handleResponse(response);
+
+      final int unreadCount = int.tryParse(
+            _readString(
+              decoded,
+              <String>['unreadCount', 'count'],
+              fallback: '0',
+            ),
+          ) ??
+          int.tryParse(
+            _readString(
+              decoded['data'] is Map<String, dynamic>
+                  ? Map<String, dynamic>.from(decoded['data'])
+                  : <String, dynamic>{},
+              <String>['unreadCount', 'count'],
+              fallback: '0',
+            ),
+          ) ??
+          0;
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _unreadNotificationCount = unreadCount;
+      });
+    } catch (_) {
+      // Silent fail. The notification page itself will show errors if needed.
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingNotificationCount = false;
+        });
+      }
+    }
+  }
+
+
+  Future<void> _openNotifications() async {
+    await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => const SocialHealthNotificationsScreen(),
       ),
     );
+
+    if (!mounted) {
+      return;
+    }
+
+    await _loadNotificationUnreadCount();
   }
 
   void _openMessages() {
@@ -723,12 +798,11 @@ class _SocialHealthUpdatesScreenState extends State<SocialHealthUpdatesScreen> {
           ),
         ),
         actions: <Widget>[
-          IconButton(
-            tooltip: 'Notifications',
+          _NotificationBellButton(
+            unreadCount: _unreadNotificationCount,
             onPressed: () {
-              _showComingSoon('Notifications');
+              _openNotifications();
             },
-            icon: const Icon(Icons.notifications_rounded),
           ),
           IconButton(
             tooltip: 'Social Health Profile',
@@ -781,7 +855,9 @@ class _SocialHealthUpdatesScreenState extends State<SocialHealthUpdatesScreen> {
                   userEmail: userEmail,
                   onRhuProfiles: _openRhuDirectory,
                   onMessages: _openMessages,
-                  onNotifications: _openNotifications,
+                  onNotifications: () {
+                    _openNotifications();
+                  },
                   onActivityHistory: _openMyAppointments,
                 ),
               ),
@@ -1020,6 +1096,66 @@ class _HeroHeader extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+
+class _NotificationBellButton extends StatelessWidget {
+  const _NotificationBellButton({
+    required this.unreadCount,
+    required this.onPressed,
+  });
+
+  final int unreadCount;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final String badgeText = unreadCount > 99 ? '99+' : unreadCount.toString();
+
+    return IconButton(
+      tooltip: 'Notifications',
+      onPressed: onPressed,
+      icon: Stack(
+        clipBehavior: Clip.none,
+        children: <Widget>[
+          const Icon(Icons.notifications_rounded),
+          if (unreadCount > 0)
+            Positioned(
+              top: -8,
+              right: -8,
+              child: Container(
+                constraints: const BoxConstraints(
+                  minWidth: 18,
+                  minHeight: 18,
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 5,
+                  vertical: 2,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEF4444),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(
+                    color: Colors.white,
+                    width: 1.5,
+                  ),
+                ),
+                child: Text(
+                  badgeText,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    height: 1,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
