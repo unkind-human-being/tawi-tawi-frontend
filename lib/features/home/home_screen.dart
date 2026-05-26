@@ -5,11 +5,34 @@ import '../auth/auth_provider.dart';
 import '../profile/profile_screen.dart';
 import '../integrates services/social_health/app service introduction/shu_introduction.dart';
 
+import '../integrates services/hanap_gawa/app service introduction/introduction_screen.dart'
+    as hanap_gawa_intro;
+import '../integrates services/LakbAi/app service introduction/introduction_screen.dart'
+    as lakbai_intro;
+import '../integrates services/TDLF-Educ/app service introduction/introduction_screen.dart'
+    as tdlf_intro;
+import '../integrates services/team lodo/app service introduction/introduction_screen.dart'
+    as team_lodo_intro;
+import '../integrates services/team rasman/app service introduction/introduction_screen.dart'
+    as team_rasman_intro;
+import '../integrates services/team ubbama/app service introduction/introduction_screen.dart'
+    as team_ubbama_intro;
+
 const Color _darkGreen = Color(0xFF064E3B);
 const Color _mainGreen = Color(0xFF0F766E);
 const Color _softGreen = Color(0xFFEFFAF5);
 const Color _blueAccent = Color(0xFF0B5ED7);
 const Color _pageBg = Color(0xFFF8FAF9);
+
+enum _ServiceRoute {
+  socialHealth,
+  hanapGawa,
+  lakbAi,
+  tdlfEduc,
+  teamLodo,
+  teamRasman,
+  teamUbbama,
+}
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -21,71 +44,153 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedTab = 0;
 
+  /*
+    DEVELOPER NOTE:
+    To integrate a real app later:
+    1. Add the app screen import above.
+    2. Add the service here in mainServices.
+    3. Add a case inside _openService().
+    4. Replace the coming soon screen with the real app screen.
+  */
   final List<_AppService> mainServices = const [
     _AppService(
-      title: 'TawiMart',
-      subtitle: 'Local ecommerce marketplace',
-      icon: Icons.shopping_bag_outlined,
-      color: Color(0xFFDCFCE7),
-      iconColor: Color(0xFF15803D),
-    ),
-    _AppService(
-      title: 'eBooks',
-      subtitle: 'Read local and school materials',
-      icon: Icons.menu_book_rounded,
-      color: Color(0xFFE0F2FE),
-      iconColor: Color(0xFF0369A1),
-    ),
-    _AppService(
       title: 'Health Updates',
-      subtitle: 'Social RHU health announcements',
+      subtitle: 'Social RHU health announcements, posts, surveys, events, and appointments',
       icon: Icons.health_and_safety_outlined,
+      imageAsset: 'assets/logo/shu/logo.png',
       color: Color(0xFFF0FDF4),
       iconColor: Color(0xFF047857),
+      statusLabel: 'Live',
+      route: _ServiceRoute.socialHealth,
     ),
     _AppService(
-      title: 'Local Link',
-      subtitle: 'Local jobs and professional network',
-      icon: Icons.work_outline,
+      title: 'Hanap Gawa',
+      subtitle: 'Find local jobs, skilled workers, and service providers',
+      icon: Icons.work_outline_rounded,
       color: Color(0xFFFEF3C7),
       iconColor: Color(0xFFB45309),
+      statusLabel: 'Coming Soon',
+      route: _ServiceRoute.hanapGawa,
     ),
     _AppService(
-      title: 'TawiRide',
-      subtitle: 'Local ride and delivery service',
-      icon: Icons.delivery_dining_rounded,
-      color: Color(0xFFFCE7F3),
-      iconColor: Color(0xFFBE185D),
-    ),
-    _AppService(
-      title: 'Tour Checker',
-      subtitle: 'Tourism guide and trip checker',
+      title: 'LakbAi',
+      subtitle: 'Tourism, local travel guide, and smart trip assistance',
       icon: Icons.travel_explore_rounded,
       color: Color(0xFFEDE9FE),
       iconColor: Color(0xFF6D28D9),
+      statusLabel: 'Coming Soon',
+      route: _ServiceRoute.lakbAi,
     ),
     _AppService(
-      title: 'Community Watch',
-      subtitle: 'Report suspicious activity safely',
-      icon: Icons.report_gmailerrorred_rounded,
+      title: 'TDLF-Educ',
+      subtitle: 'Education tools, school materials, and learning resources',
+      icon: Icons.school_rounded,
+      color: Color(0xFFE0F2FE),
+      iconColor: Color(0xFF0369A1),
+      statusLabel: 'Coming Soon',
+      route: _ServiceRoute.tdlfEduc,
+    ),
+    _AppService(
+      title: 'Team Lodo',
+      subtitle: 'Community service module prepared for future integration',
+      icon: Icons.groups_2_rounded,
+      color: Color(0xFFDCFCE7),
+      iconColor: Color(0xFF15803D),
+      statusLabel: 'Coming Soon',
+      route: _ServiceRoute.teamLodo,
+    ),
+    _AppService(
+      title: 'Team Rasman',
+      subtitle: 'Local app module prepared for future integration',
+      icon: Icons.apps_rounded,
+      color: Color(0xFFFCE7F3),
+      iconColor: Color(0xFFBE185D),
+      statusLabel: 'Coming Soon',
+      route: _ServiceRoute.teamRasman,
+    ),
+    _AppService(
+      title: 'Team Ubbama',
+      subtitle: 'Upcoming digital service for the Tawi-Tawi platform',
+      icon: Icons.public_rounded,
       color: Color(0xFFFEE2E2),
       iconColor: Color(0xFFB91C1C),
+      statusLabel: 'Coming Soon',
+      route: _ServiceRoute.teamUbbama,
     ),
   ];
 
   final List<_QuickCategory> quickCategories = const [
-    _QuickCategory('Shop', Icons.storefront_rounded),
-    _QuickCategory('Read', Icons.book_rounded),
-    _QuickCategory('Health', Icons.local_hospital_rounded),
-    _QuickCategory('Jobs', Icons.badge_rounded),
-    _QuickCategory('Ride', Icons.two_wheeler_rounded),
+    _QuickCategory(
+      title: 'Health',
+      icon: Icons.local_hospital_rounded,
+      route: _ServiceRoute.socialHealth,
+    ),
+    _QuickCategory(
+      title: 'Jobs',
+      icon: Icons.badge_rounded,
+      route: _ServiceRoute.hanapGawa,
+    ),
+    _QuickCategory(
+      title: 'Travel',
+      icon: Icons.travel_explore_rounded,
+      route: _ServiceRoute.lakbAi,
+    ),
+    _QuickCategory(
+      title: 'Educ',
+      icon: Icons.school_rounded,
+      route: _ServiceRoute.tdlfEduc,
+    ),
+    _QuickCategory(
+      title: 'Apps',
+      icon: Icons.apps_rounded,
+      route: _ServiceRoute.teamLodo,
+    ),
   ];
 
   void _openPlaceholder(String title) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('$title module will be added next.'),
+        behavior: SnackBarBehavior.floating,
       ),
+    );
+  }
+
+  void _openService(_ServiceRoute route) {
+    Widget screen;
+
+    switch (route) {
+      case _ServiceRoute.socialHealth:
+        screen = const ShuIntroductionScreen();
+        break;
+
+      case _ServiceRoute.hanapGawa:
+        screen = const hanap_gawa_intro.HanapGawaIntroductionScreen();
+        break;
+
+      case _ServiceRoute.lakbAi:
+        screen = const lakbai_intro.LakbAiIntroductionScreen();
+        break;
+
+      case _ServiceRoute.tdlfEduc:
+        screen = const tdlf_intro.TDLFEducIntroductionScreen();
+        break;
+
+      case _ServiceRoute.teamLodo:
+        screen = const team_lodo_intro.TeamLodoIntroductionScreen();
+        break;
+
+      case _ServiceRoute.teamRasman:
+        screen = const team_rasman_intro.TeamRasmanIntroductionScreen();
+        break;
+
+      case _ServiceRoute.teamUbbama:
+        screen = const team_ubbama_intro.TeamUbbamaIntroductionScreen();
+        break;
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => screen),
     );
   }
 
@@ -104,25 +209,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final labels = ['Home', 'Scan', 'Digital ID', 'History', 'Account'];
     _openPlaceholder(labels[index]);
-  }
-  //shu funtion
-  void _openHealthModule() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const ShuIntroductionScreen(),
-      ),
-    );
-  }
-
-  void _handleServiceTap(String title) {
-    final String cleanTitle = title.trim().toLowerCase();
-
-    if (cleanTitle == 'health' || cleanTitle == 'health updates') {
-      _openHealthModule();
-      return;
-    }
-
-    _openPlaceholder(title);
   }
 
   @override
@@ -160,12 +246,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       SliverToBoxAdapter(
                         child: _QuickCategoriesRow(
                           categories: quickCategories,
-                          onTap: _handleServiceTap,
+                          onTap: _openService,
                         ),
                       ),
                       SliverToBoxAdapter(
                         child: _PromoBanner(
-                          onTap: () => _openPlaceholder('Tawi-Tawi Super App'),
+                          onTap: () => _openService(_ServiceRoute.socialHealth),
                         ),
                       ),
                       SliverToBoxAdapter(
@@ -204,24 +290,25 @@ class _HomeScreenState extends State<HomeScreen> {
                             children: [
                               Expanded(
                                 child: _FeatureCard(
-                                  title: 'Community\nServices',
-                                  subtitle: 'Powered by Tawi-Tawi',
-                                  icon: Icons.location_city_rounded,
-                                  backgroundColor: Color(0xFFEFF6FF),
-                                  iconColor: _blueAccent,
+                                  title: 'Health\nPortal',
+                                  subtitle: 'RHU updates and services',
+                                  icon: Icons.health_and_safety_rounded,
+                                  backgroundColor: const Color(0xFFECFDF5),
+                                  iconColor: _mainGreen,
                                   onTap: () =>
-                                      _openPlaceholder('Community Services'),
+                                      _openService(_ServiceRoute.socialHealth),
                                 ),
                               ),
                               const SizedBox(width: 14),
                               Expanded(
                                 child: _FeatureCard(
-                                  title: 'Local App\nPortals',
-                                  subtitle: 'All-in-one access',
+                                  title: 'Coming\nApps',
+                                  subtitle: 'More services soon',
                                   icon: Icons.apps_rounded,
-                                  backgroundColor: Color(0xFFECFDF5),
-                                  iconColor: _mainGreen,
-                                  onTap: () => _openPlaceholder('Local Portals'),
+                                  backgroundColor: const Color(0xFFEFF6FF),
+                                  iconColor: _blueAccent,
+                                  onTap: () =>
+                                      _openService(_ServiceRoute.teamLodo),
                                 ),
                               ),
                             ],
@@ -247,22 +334,12 @@ class _HomeScreenState extends State<HomeScreen> {
                               Expanded(
                                 child: Text(
                                   _selectedTab == 0
-                                      ? 'Most Used Services'
-                                      : 'Community Apps',
+                                      ? 'Available and Coming Services'
+                                      : 'Community App Modules',
                                   style: const TextStyle(
                                     fontSize: 21,
                                     fontWeight: FontWeight.w900,
                                     color: Color(0xFF1F2937),
-                                  ),
-                                ),
-                              ),
-                              TextButton(
-                                onPressed: () => _openPlaceholder('All Services'),
-                                child: const Text(
-                                  'View All Services',
-                                  style: TextStyle(
-                                    color: _blueAccent,
-                                    fontWeight: FontWeight.w800,
                                   ),
                                 ),
                               ),
@@ -284,7 +361,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               child: _ServiceTile(
                                 service: service,
-                                onTap: () => _handleServiceTap(service.title),
+                                onTap: () => _openService(service.route),
                               ),
                             );
                           },
@@ -491,7 +568,7 @@ class _SearchBox extends StatelessWidget {
               children: [
                 const Expanded(
                   child: Text(
-                    'Search apps like ecommerce, health, tourism',
+                    'Search apps like health, jobs, travel, education',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -526,7 +603,7 @@ class _SearchBox extends StatelessWidget {
 
 class _QuickCategoriesRow extends StatelessWidget {
   final List<_QuickCategory> categories;
-  final ValueChanged<String> onTap;
+  final ValueChanged<_ServiceRoute> onTap;
 
   const _QuickCategoriesRow({
     required this.categories,
@@ -546,7 +623,7 @@ class _QuickCategoriesRow extends StatelessWidget {
           final category = categories[index];
 
           return InkWell(
-            onTap: () => onTap(category.title),
+            onTap: () => onTap(category.route),
             borderRadius: BorderRadius.circular(50),
             child: SizedBox(
               width: 72,
@@ -633,7 +710,7 @@ class _PromoBanner extends StatelessWidget {
                         borderRadius: BorderRadius.circular(50),
                       ),
                       child: const Text(
-                        'NEW PLATFORM',
+                        'ONE DIGITAL HUB',
                         style: TextStyle(
                           color: Color(0xFF15803D),
                           fontSize: 11,
@@ -643,7 +720,7 @@ class _PromoBanner extends StatelessWidget {
                     ),
                     const SizedBox(height: 14),
                     const Text(
-                      'One Tawi-Tawi\nDigital Hub',
+                      'Tawi-Tawi\nService Portal',
                       style: TextStyle(
                         color: _darkGreen,
                         fontSize: 24,
@@ -653,7 +730,7 @@ class _PromoBanner extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'Shop, learn, travel, work, and connect locally.',
+                      'Access health updates and future local services.',
                       style: TextStyle(
                         color: Color(0xFF4B5563),
                         fontSize: 13,
@@ -667,13 +744,20 @@ class _PromoBanner extends StatelessWidget {
                 width: 92,
                 height: 92,
                 decoration: const BoxDecoration(
-                  color: _mainGreen,
+                  color: Colors.white,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.apps_rounded,
-                  color: Colors.white,
-                  size: 48,
+                padding: const EdgeInsets.all(12),
+                child: Image.asset(
+                  'assets/logo/shu/logo.png',
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Icon(
+                      Icons.health_and_safety_rounded,
+                      color: _mainGreen,
+                      size: 48,
+                    );
+                  },
                 ),
               ),
             ],
@@ -858,6 +942,8 @@ class _ServiceTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isLive = service.statusLabel.toLowerCase() == 'live';
+
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(22),
@@ -865,7 +951,7 @@ class _ServiceTile extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(22),
         child: Container(
-          constraints: const BoxConstraints(minHeight: 96),
+          constraints: const BoxConstraints(minHeight: 104),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(22),
@@ -883,17 +969,35 @@ class _ServiceTile extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 62,
-                height: 62,
+                width: 64,
+                height: 64,
+                padding: EdgeInsets.all(service.imageAsset == null ? 0 : 8),
                 decoration: BoxDecoration(
-                  color: service.color,
+                  color: service.imageAsset == null ? service.color : Colors.white,
                   shape: BoxShape.circle,
+                  border: service.imageAsset == null
+                      ? null
+                      : Border.all(
+                          color: const Color(0xFFE5E7EB),
+                        ),
                 ),
-                child: Icon(
-                  service.icon,
-                  color: service.iconColor,
-                  size: 31,
-                ),
+                child: service.imageAsset == null
+                    ? Icon(
+                        service.icon,
+                        color: service.iconColor,
+                        size: 31,
+                      )
+                    : Image.asset(
+                        service.imageAsset!,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Icon(
+                            service.icon,
+                            color: service.iconColor,
+                            size: 31,
+                          );
+                        },
+                      ),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -901,26 +1005,61 @@ class _ServiceTile extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      service.title,
-                      style: const TextStyle(
-                        color: Color(0xFF1F2937),
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                      ),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            service.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Color(0xFF1F2937),
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isLive
+                                ? const Color(0xFFDCFCE7)
+                                : const Color(0xFFF3F4F6),
+                            borderRadius: BorderRadius.circular(50),
+                          ),
+                          child: Text(
+                            service.statusLabel,
+                            style: TextStyle(
+                              color: isLive
+                                  ? const Color(0xFF15803D)
+                                  : const Color(0xFF6B7280),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 3),
+                    const SizedBox(height: 5),
                     Text(
                       service.subtitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Color(0xFF6B7280),
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
+                        height: 1.25,
                       ),
                     ),
                   ],
                 ),
               ),
+              const SizedBox(width: 8),
               const Icon(
                 Icons.chevron_right_rounded,
                 color: Color(0xFF9CA3AF),
@@ -1085,24 +1224,32 @@ class _AppService {
   final String title;
   final String subtitle;
   final IconData icon;
+  final String? imageAsset;
   final Color color;
   final Color iconColor;
+  final String statusLabel;
+  final _ServiceRoute route;
 
   const _AppService({
     required this.title,
     required this.subtitle,
     required this.icon,
+    this.imageAsset,
     required this.color,
     required this.iconColor,
+    required this.statusLabel,
+    required this.route,
   });
 }
 
 class _QuickCategory {
   final String title;
   final IconData icon;
+  final _ServiceRoute route;
 
-  const _QuickCategory(
-    this.title,
-    this.icon,
-  );
+  const _QuickCategory({
+    required this.title,
+    required this.icon,
+    required this.route,
+  });
 }
