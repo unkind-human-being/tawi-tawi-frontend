@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
-import 'appointment/social_health_apply_appointment_screen.dart';
-import '../../../core/constants/integrate api services/shu/shu_api_constant.dart';
-import '../../auth/auth_provider.dart';
+import '../appointment/social_health_apply_appointment_screen.dart';
+import '../../../../core/constants/integrate api services/shu/shu_api_constant.dart';
+import '../../../auth/auth_provider.dart';
 
 class SocialHealthRhuDirectoryScreen extends StatefulWidget {
   const SocialHealthRhuDirectoryScreen({

@@ -47,5 +47,47 @@ class ShuApiConstants {
     return '$gatewayPrefix/appointment-settings/rhu/$rhuId';
   }
 
+  static String consultationMessagesForAppointment(String appointmentId) {
+    return '$gatewayPrefix/consultation-messages/appointment/$appointmentId';
+  }
+
+  static const String myNotifications = '$gatewayPrefix/notifications/my';
+
+  static const String unreadNotificationsCount =
+      '$gatewayPrefix/notifications/unread-count';
+
+  static const String markAllNotificationsRead =
+      '$gatewayPrefix/notifications/read-all';
+
+  static String markNotificationRead(String notificationId) {
+    return '$gatewayPrefix/notifications/$notificationId/read';
+  }
+
+
+  static const String incomingVideoCall =
+    '$gatewayPrefix/video/calls/incoming';
+
+  static const String agoraToken =
+      '$gatewayPrefix/video/agora-token';
+
+  static const String videoCallJoined =
+      '$gatewayPrefix/video/calls/joined';
+
+  static const String videoCallEnded =
+      '$gatewayPrefix/video/calls/ended';
+
+  static String acceptVideoCall(String callId) {
+    return '$gatewayPrefix/video/calls/$callId/accept';
+  }
+
+  static String declineVideoCall(String callId) {
+    return '$gatewayPrefix/video/calls/$callId/decline';
+  }
+
+  static String endVideoCall(String callId) {
+    return '$gatewayPrefix/video/calls/$callId/end';
+  }
+
+
   static const String rhuAiChat = '$gatewayPrefix/ai/chat';
 }

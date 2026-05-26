@@ -4,7 +4,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
-import '../../../core/constants/integrate api services/shu/shu_api_constant.dart';
+import '../../../../core/constants/integrate api services/shu/shu_api_constant.dart';
 
 class SocialHealthRegisterScreen extends StatefulWidget {
   const SocialHealthRegisterScreen({

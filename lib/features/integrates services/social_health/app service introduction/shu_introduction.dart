@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 
-import '../social_health_gateway_screen.dart';
+import '../home/social_health_gateway_screen.dart';
 
 class ShuIntroductionScreen extends StatefulWidget {
   const ShuIntroductionScreen({super.key});

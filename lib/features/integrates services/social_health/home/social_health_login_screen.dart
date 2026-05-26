@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'auth/social_health_auth_provider.dart';
+import '../auth/social_health_auth_provider.dart';
 import 'social_health_register_screen.dart';
 
 class SocialHealthLoginScreen extends StatefulWidget {

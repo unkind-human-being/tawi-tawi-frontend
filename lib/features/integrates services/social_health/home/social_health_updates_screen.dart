@@ -5,14 +5,18 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'social_health_rhu_directory_screen.dart';
-import 'appointment/social_health_my_appointments_screen.dart';
-import 'appointment/social_health_apply_appointment_screen.dart';
+import '../appointment/social_health_my_appointments_screen.dart';
+import '../appointment/social_health_apply_appointment_screen.dart';
+import '../messages/social_health_messages_screen.dart';
+import '../notifications/social_health_notifications_screen.dart';
+import '../../../auth/auth_provider.dart';
+import '../video/social_health_incoming_call_watcher.dart';
 
 
 
-import '../../../core/constants/integrate api services/shu/shu_api_constant.dart';
+import '../../../../core/constants/integrate api services/shu/shu_api_constant.dart';
 import 'rhu_ai_chat_sheet.dart';
-import 'auth/social_health_auth_provider.dart';
+import '../auth/social_health_auth_provider.dart';
 
 class SocialHealthUpdatesScreen extends StatefulWidget {
   const SocialHealthUpdatesScreen({super.key});
@@ -101,6 +105,24 @@ class _SocialHealthUpdatesScreenState extends State<SocialHealthUpdatesScreen> {
         ),
       );
     }
+  }
+  
+
+
+  void _openNotifications() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const SocialHealthNotificationsScreen(),
+      ),
+    );
+  }
+
+  void _openMessages() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const SocialHealthMessagesScreen(),
+      ),
+    );
   }
 
   void _openMyAppointments() {
@@ -490,8 +512,15 @@ class _SocialHealthUpdatesScreenState extends State<SocialHealthUpdatesScreen> {
       return;
     }
 
-    final SocialHealthAuthProvider authProvider =
+    final SocialHealthAuthProvider socialHealthAuth =
         context.read<SocialHealthAuthProvider>();
+
+    final String token = context.read<AuthProvider>().token ?? '';
+
+    if (token.trim().isEmpty) {
+      _showErrorSnack('Tawi-Tawi login token is missing. Please log in again.');
+      return;
+    }
 
     final _EventRegistrationInput? input =
         await showDialog<_EventRegistrationInput>(
@@ -499,8 +528,10 @@ class _SocialHealthUpdatesScreenState extends State<SocialHealthUpdatesScreen> {
       barrierDismissible: false,
       builder: (BuildContext context) {
         return _EventRegistrationDialog(
-          defaultName: authProvider.name,
-          defaultEmail: authProvider.email,
+          defaultName: socialHealthAuth.name.isEmpty
+              ? 'Social Health User'
+              : socialHealthAuth.name,
+          defaultEmail: socialHealthAuth.email,
           defaultPhone: '',
           eventTitle: item.title,
         );
@@ -512,13 +543,13 @@ class _SocialHealthUpdatesScreenState extends State<SocialHealthUpdatesScreen> {
     }
 
     try {
-     await _postJson(
-      ShuApiConstants.eventRegistration(
-        Uri.encodeComponent(item.id),
-      ),
-      token: authProvider.token,
-      body: input.toJson(),
-    );
+      await _postJson(
+        ShuApiConstants.eventRegistration(
+          Uri.encodeComponent(item.id),
+        ),
+        token: token,
+        body: input.toJson(),
+      );
 
       if (!mounted) {
         return;
@@ -551,8 +582,15 @@ class _SocialHealthUpdatesScreenState extends State<SocialHealthUpdatesScreen> {
       return;
     }
 
-    final SocialHealthAuthProvider authProvider =
+    final SocialHealthAuthProvider socialHealthAuth =
         context.read<SocialHealthAuthProvider>();
+
+    final String token = context.read<AuthProvider>().token ?? '';
+
+    if (token.trim().isEmpty) {
+      _showErrorSnack('Tawi-Tawi login token is missing. Please log in again.');
+      return;
+    }
 
     final List<_SurveyQuestion> questions =
         _SurveyQuestion.fromSurveyJson(item.rawJson);
@@ -564,8 +602,10 @@ class _SocialHealthUpdatesScreenState extends State<SocialHealthUpdatesScreen> {
         return _SurveyResponseDialog(
           surveyTitle: item.title,
           questions: questions,
-          defaultName: authProvider.name,
-          defaultEmail: authProvider.email,
+          defaultName: socialHealthAuth.name.isEmpty
+              ? 'Social Health User'
+              : socialHealthAuth.name,
+          defaultEmail: socialHealthAuth.email,
           defaultPhone: '',
         );
       },
@@ -576,11 +616,11 @@ class _SocialHealthUpdatesScreenState extends State<SocialHealthUpdatesScreen> {
     }
 
     try {
-     await _postJson(
+      await _postJson(
         ShuApiConstants.surveyResponse(
           Uri.encodeComponent(item.id),
         ),
-        token: authProvider.token,
+        token: token,
         body: input.toJson(),
       );
 
@@ -650,7 +690,8 @@ class _SocialHealthUpdatesScreenState extends State<SocialHealthUpdatesScreen> {
 
     final List<_FeedItem> displayedItems = _displayedItems;
 
-    return Scaffold(
+    return SocialHealthIncomingCallWatcher(
+    child: Scaffold(
       backgroundColor: const Color(0xFFEFF6FF),
       floatingActionButton: FloatingActionButton(
         heroTag: 'rhu_ai_chat_button',
@@ -714,11 +755,11 @@ class _SocialHealthUpdatesScreenState extends State<SocialHealthUpdatesScreen> {
         },
         onMessages: () {
           Navigator.of(context).pop();
-          _showComingSoon('Messages');
+          _openMessages();
         },
         onNotifications: () {
           Navigator.of(context).pop();
-          _showComingSoon('Notifications');
+          _openNotifications();
         },
         onActivityHistory: () {
           Navigator.of(context).pop();
@@ -739,12 +780,8 @@ class _SocialHealthUpdatesScreenState extends State<SocialHealthUpdatesScreen> {
                 child: _HeroHeader(
                   userEmail: userEmail,
                   onRhuProfiles: _openRhuDirectory,
-                  onMessages: () {
-                    _showComingSoon('Messages');
-                  },
-                  onNotifications: () {
-                    _showComingSoon('Notifications');
-                  },
+                  onMessages: _openMessages,
+                  onNotifications: _openNotifications,
                   onActivityHistory: _openMyAppointments,
                 ),
               ),
@@ -806,6 +843,16 @@ class _SocialHealthUpdatesScreenState extends State<SocialHealthUpdatesScreen> {
                       child: _FeedCard(
                         item: item,
                         onTap: () {
+                          if (item.type == 'event') {
+                            _registerForEvent(item);
+                            return;
+                          }
+
+                          if (item.type == 'survey') {
+                            _submitSurveyResponse(item);
+                            return;
+                          }
+
                           _showFeedDetails(item);
                         },
                       ),
@@ -829,6 +876,7 @@ class _SocialHealthUpdatesScreenState extends State<SocialHealthUpdatesScreen> {
             ],
           ),
         ),
+      ),
       ),
     );
   }
