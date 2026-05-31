@@ -805,7 +805,7 @@ class _SocialHealthApplyAppointmentScreenState
                         else
                           DropdownButtonFormField<String>(
                             isExpanded: true,
-                            initialValue: selectedRhuStillAvailable
+                            value: selectedRhuStillAvailable
                                 ? _selectedRhuId
                                 : null,
                             decoration: const InputDecoration(
@@ -855,7 +855,7 @@ class _SocialHealthApplyAppointmentScreenState
                         const SizedBox(height: 14),
                         DropdownButtonFormField<String>(
                           isExpanded: true,
-                          initialValue: _selectedServiceType,
+                          value: _selectedServiceType,
                           decoration: const InputDecoration(
                             labelText: 'Service needed',
                             prefixIcon: Icon(Icons.medical_services_rounded),
@@ -904,7 +904,7 @@ class _SocialHealthApplyAppointmentScreenState
                         else
                           DropdownButtonFormField<String>(
                             isExpanded: true,
-                            initialValue: selectedTypeStillAvailable
+                            value: selectedTypeStillAvailable
                                 ? _selectedAppointmentType
                                 : null,
                             decoration: const InputDecoration(
@@ -1002,7 +1002,7 @@ class _SocialHealthApplyAppointmentScreenState
                         const SizedBox(height: 14),
                         DropdownButtonFormField<String>(
                           isExpanded: true,
-                          initialValue: _selectedSex,
+                          value: _selectedSex,
                           decoration: const InputDecoration(
                             labelText: 'Sex',
                             prefixIcon: Icon(Icons.wc_rounded),
@@ -1036,7 +1036,7 @@ class _SocialHealthApplyAppointmentScreenState
                         const SizedBox(height: 14),
                         DropdownButtonFormField<String>(
                           isExpanded: true,
-                          initialValue: _selectedReligion,
+                          value: _selectedReligion,
                           decoration: const InputDecoration(
                             labelText: 'Religion',
                             prefixIcon: Icon(Icons.account_balance_rounded),
@@ -1074,7 +1074,7 @@ class _SocialHealthApplyAppointmentScreenState
                         const SizedBox(height: 14),
                         DropdownButtonFormField<String>(
                           isExpanded: true,
-                          initialValue: _selectedCivilStatus,
+                          value: _selectedCivilStatus,
                           decoration: const InputDecoration(
                             labelText: 'Civil status',
                             prefixIcon: Icon(Icons.family_restroom_rounded),

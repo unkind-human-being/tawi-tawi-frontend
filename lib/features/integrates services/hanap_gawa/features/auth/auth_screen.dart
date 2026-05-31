@@ -7,10 +7,28 @@ import '../../core/models/models.dart';
 import '../../core/theme.dart';
 import '../../shared/widgets/message_banner.dart';
 
-final _googleSignIn = GoogleSignIn(
-  serverClientId:
-      '1051761935414-p8lv7ceqb0qki482upci225ebukgm21n.apps.googleusercontent.com',
-);
+import 'package:flutter/foundation.dart';
+
+const String _googleWebClientId =
+    '1051761935414-p8lv7ceqb0qki482upci225ebukgm21n.apps.googleusercontent.com';
+
+bool _googleInitialized = false;
+
+Future<void> _initializeGoogleSignIn() async {
+  if (_googleInitialized) return;
+
+  if (kIsWeb) {
+    await GoogleSignIn.instance.initialize(
+      clientId: _googleWebClientId,
+    );
+  } else {
+    await GoogleSignIn.instance.initialize(
+      serverClientId: _googleWebClientId,
+    );
+  }
+
+  _googleInitialized = true;
+}
 
 enum AuthMode { login, register, verify }
 
@@ -190,48 +208,52 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Future<void> _handleGoogleSignIn() async {
-    setState(() {
-      _loading = true;
-      _message = '';
-    });
-    try {
-      await _googleSignIn.signOut();
-      final account = await _googleSignIn.signIn();
-      if (account == null) {
-        setState(() => _loading = false);
-        return;
-      }
-      final auth = await account.authentication;
-      final idToken = auth.idToken;
-      if (idToken == null) {
-        _setMessage('Google Sign-In did not return a credential.', true);
-        return;
-      }
-      final json = await widget.api.signInWithGoogleRaw(idToken);
-      if (json['emailVerificationRequired'] == true) {
-        // New or unverified user: show verification screen
-        final email = json['email']?.toString() ?? '';
-        final devCode = json['devVerificationCode']?.toString();
-        setState(() {
-          _mode = AuthMode.verify;
-          _email.text = email;
-          _loading = false;
-          _messageIsError = false;
-          _message = devCode == null
-              ? 'Account created. A verification code was sent to $email.'
-              : 'Account created. Dev code: $devCode';
-        });
-      } else {
-        await widget.onAuthenticated(AuthResponse.fromJson(json));
-      }
-    } catch (error) {
-      _setMessage(error.toString(), true);
-    } finally {
-      if (mounted && _mode != AuthMode.verify) {
-        setState(() => _loading = false);
-      }
+  setState(() {
+    _loading = true;
+    _message = '';
+  });
+
+  try {
+    await _initializeGoogleSignIn();
+
+    await GoogleSignIn.instance.signOut();
+
+    final account = await GoogleSignIn.instance.authenticate();
+
+    final authentication = account.authentication;
+    final idToken = authentication.idToken;
+
+    if (idToken == null || idToken.isEmpty) {
+      _setMessage('Google Sign-In did not return a credential.', true);
+      return;
+    }
+
+    final json = await widget.api.signInWithGoogleRaw(idToken);
+
+    if (json['emailVerificationRequired'] == true) {
+      final email = json['email']?.toString() ?? '';
+      final devCode = json['devVerificationCode']?.toString();
+
+      setState(() {
+        _mode = AuthMode.verify;
+        _email.text = email;
+        _loading = false;
+        _messageIsError = false;
+        _message = devCode == null
+            ? 'Account created. A verification code was sent to $email.'
+            : 'Account created. Dev code: $devCode';
+      });
+    } else {
+      await widget.onAuthenticated(AuthResponse.fromJson(json));
+    }
+  } catch (error) {
+    _setMessage(error.toString(), true);
+  } finally {
+    if (mounted && _mode != AuthMode.verify) {
+      setState(() => _loading = false);
     }
   }
+}
 
   void _setMessage(String value, bool isError) {
     setState(() {
