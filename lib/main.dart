@@ -31,7 +31,7 @@ Future<void> main() async {
         version: 'v19.0',
       );
 
-      final initialized = await FacebookAuth.i.isWebSdkInitialized;
+      final initialized = FacebookAuth.i.isWebSdkInitialized;
       debugPrint('Facebook Web SDK initialized: $initialized');
     }
   }

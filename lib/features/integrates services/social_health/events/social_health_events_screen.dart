@@ -426,7 +426,7 @@ class _TypeFilter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<String>(
-      value: selectedType ?? 'all',
+      initialValue: selectedType ?? 'all',
       decoration: const InputDecoration(
         labelText: 'Event type',
         prefixIcon: Icon(Icons.filter_list_rounded),

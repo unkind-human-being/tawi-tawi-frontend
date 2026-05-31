@@ -13,7 +13,7 @@ import '../integrates services/TDLF-Educ/app service introduction/introduction_s
     as tdlf_intro;
 import '../integrates services/team lodo/app service introduction/introduction_screen.dart'
     as team_lodo_intro;
-import '../integrates services/team rasman/app service introduction/introduction_screen.dart'
+import '../integrates services/pameyaan/app service introduction/introduction_screen.dart'
     as team_rasman_intro;
 import '../integrates services/team ubbama/app service introduction/introduction_screen.dart'
     as team_ubbama_intro;

@@ -2,7 +2,7 @@ import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 
 class MetaAuthService {
   Future<String> getMetaAccessToken() async {
-    final isInitialized = await FacebookAuth.i.isWebSdkInitialized;
+    final isInitialized = FacebookAuth.i.isWebSdkInitialized;
 
     if (isInitialized == false) {
       throw Exception(
