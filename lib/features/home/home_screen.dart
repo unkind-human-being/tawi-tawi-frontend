@@ -7,8 +7,11 @@ import '../integrates services/social_health/app service introduction/shu_introd
 
 import '../integrates services/hanap_gawa/app service introduction/introduction_screen.dart'
     as hanap_gawa_intro;
-import '../integrates services/LakbAi/app service introduction/introduction_screen.dart'
-    as lakbai_intro;
+
+// 1. --- CHANGED: Import the actual LakbAi Home Screen ---
+import '../integrates services/LakbAi/widgets/lakbai_main_layout.dart';
+/////
+
 import '../integrates services/TDLF-Educ/app service introduction/introduction_screen.dart'
     as tdlf_intro;
 import '../integrates services/team lodo/app service introduction/introduction_screen.dart'
@@ -64,13 +67,14 @@ class _HomeScreenState extends State<HomeScreen> {
       route: _ServiceRoute.socialHealth,
     ),
     _AppService(
-      title: 'Hanap Gawa',
-      subtitle: 'Find local jobs, skilled workers, and service providers',
-      icon: Icons.work_outline_rounded,
-      color: Color(0xFFFEF3C7),
-      iconColor: Color(0xFFB45309),
-      statusLabel: 'Coming Soon',
-      route: _ServiceRoute.hanapGawa,
+      title: 'LakbAi',
+      subtitle: 'Tourism, local travel guide, and smart trip assistance',
+      icon: Icons.travel_explore_rounded,
+      color: Color(0xFFEDE9FE),
+      iconColor: Color(0xFF6D28D9),
+      //  CHANGED THIS: Status is Live
+      statusLabel: 'Live', 
+      route: _ServiceRoute.lakbAi,
     ),
     _AppService(
       title: 'LakbAi',
@@ -78,7 +82,8 @@ class _HomeScreenState extends State<HomeScreen> {
       icon: Icons.travel_explore_rounded,
       color: Color(0xFFEDE9FE),
       iconColor: Color(0xFF6D28D9),
-      statusLabel: 'Coming Soon',
+      // 2. --- CHANGED: Status is now Live ---
+      statusLabel: 'Live',
       route: _ServiceRoute.lakbAi,
     ),
     _AppService(
@@ -168,8 +173,9 @@ class _HomeScreenState extends State<HomeScreen> {
         screen = const hanap_gawa_intro.HanapGawaIntroductionScreen();
         break;
 
+      //CHANGED THIS: Replaced LakbaiHomeScreen with LakbaiMainLayout so the bottom tab bar is active
       case _ServiceRoute.lakbAi:
-        screen = const lakbai_intro.LakbAiIntroductionScreen();
+        screen = const LakbaiMainLayout(); 
         break;
 
       case _ServiceRoute.tdlfEduc:

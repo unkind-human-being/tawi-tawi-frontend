@@ -3,6 +3,10 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:provider/provider.dart';
+import 'features/integrates services/LakbAi/providers/lakbai_admin_provider.dart';
+import 'features/integrates services/LakbAi/providers/lakbai_auth_provider.dart';
+import 'features/integrates services/LakbAi/providers/lakbai_destinations_provider.dart';
+import 'features/integrates services/LakbAi/providers/lakbai_itinerary_provider.dart';
 import 'features/integrates services/social_health/auth/social_health_auth_provider.dart';
 
 
@@ -59,6 +63,12 @@ Future<void> main() async {
         ChangeNotifierProvider(
           create: (_) => AuthProvider(authRepository),
         ),
+
+          // ADD THESE LINES inside your MultiProvider's list:
+      ChangeNotifierProvider(create: (_) => LakbaiAuthProvider()),
+      ChangeNotifierProvider(create: (_) => LakbaiDestinationsProvider()),
+      ChangeNotifierProvider(create: (_) => LakbaiItineraryProvider()),
+      ChangeNotifierProvider(create: (_) => LakbaiAdminProvider()),
       ],
       child: const TawiTawiApp(),
       

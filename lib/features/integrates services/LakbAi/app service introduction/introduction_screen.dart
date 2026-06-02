@@ -1,187 +1,52 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import '../lakbai_config.dart';
 
-const Color _primaryColor = Color(0xFF6D28D9);
-const Color _darkColor = Color(0xFF4C1D95);
-const Color _softBg = Color(0xFFF5F3FF);
+class LakbaiDestinationsProvider extends ChangeNotifier {
+  List<dynamic> _destinations = [];
+  bool _isLoading = false;
 
-class LakbAiIntroductionScreen extends StatelessWidget {
-  const LakbAiIntroductionScreen({super.key});
+  List<dynamic> get destinations => _destinations;
+  bool get isLoading => _isLoading;
 
-  @override
-  Widget build(BuildContext context) {
-    return const _ComingSoonIntroductionScreen(
-      serviceName: 'LakbAi',
-      shortDescription: 'Tourism, travel assistance, and local destination guide.',
-      icon: Icons.travel_explore_rounded,
-    );
+  // Fetch all destinations
+  Future<void> fetchDestinations() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final response = await http.get(Uri.parse('${LakbaiAppConfig.baseUrl}/destinations'));
+      if (response.statusCode == 200) {
+        _destinations = json.decode(response.body);
+      }
+    } catch (e) {
+      debugPrint('Error fetching destinations: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
-}
 
-class _ComingSoonIntroductionScreen extends StatelessWidget {
-  final String serviceName;
-  final String shortDescription;
-  final IconData icon;
+  // ADD NEW DESTINATION
+  Future<bool> addDestination(Map<String, dynamic> destinationData, String token) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${LakbaiAppConfig.baseUrl}/destinations'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token', // Send token to verify they are an agency
+        },
+        body: json.encode(destinationData),
+      );
 
-  const _ComingSoonIntroductionScreen({
-    required this.serviceName,
-    required this.shortDescription,
-    required this.icon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _softBg,
-      appBar: AppBar(
-        backgroundColor: _softBg,
-        elevation: 0,
-        foregroundColor: _darkColor,
-        title: Text(
-          serviceName,
-          style: const TextStyle(fontWeight: FontWeight.w900),
-        ),
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
-          child: Column(
-            children: [
-              const Spacer(),
-              Container(
-                width: 118,
-                height: 118,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.08),
-                      blurRadius: 24,
-                      offset: const Offset(0, 12),
-                    ),
-                  ],
-                ),
-                child: Icon(icon, color: _primaryColor, size: 58),
-              ),
-              const SizedBox(height: 28),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEDE9FE),
-                  borderRadius: BorderRadius.circular(50),
-                ),
-                child: const Text(
-                  'COMING SOON',
-                  style: TextStyle(
-                    color: _primaryColor,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 18),
-              Text(
-                serviceName,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: _darkColor,
-                  fontSize: 32,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                shortDescription,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Color(0xFF6B7280),
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  height: 1.45,
-                ),
-              ),
-              const SizedBox(height: 28),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(color: const Color(0xFFDDD6FE)),
-                ),
-                child: const Column(
-                  children: [
-                    _InfoRow(
-                      icon: Icons.build_circle_outlined,
-                      text: 'This service is still under development.',
-                    ),
-                    SizedBox(height: 12),
-                    _InfoRow(
-                      icon: Icons.phone_android_rounded,
-                      text: 'It will be available inside this app soon.',
-                    ),
-                    SizedBox(height: 12),
-                    _InfoRow(
-                      icon: Icons.verified_rounded,
-                      text: 'Please check again after the official launch.',
-                    ),
-                  ],
-                ),
-              ),
-              const Spacer(),
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: FilledButton(
-                  onPressed: null,
-                  style: FilledButton.styleFrom(
-                    disabledBackgroundColor: _primaryColor.withValues(alpha: 0.45),
-                    disabledForegroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                  ),
-                  child: const Text(
-                    'Coming Soon',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  final IconData icon;
-  final String text;
-
-  const _InfoRow({
-    required this.icon,
-    required this.text,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, color: _primaryColor, size: 23),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            text,
-            style: const TextStyle(
-              color: Color(0xFF374151),
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              height: 1.35,
-            ),
-          ),
-        ),
-      ],
-    );
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        await fetchDestinations(); // Refresh the list so the new item shows up
+        return true;
+      }
+    } catch (e) {
+      debugPrint('Error adding destination: $e');
+    }
+    return false;
   }
 }
