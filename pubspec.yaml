@@ -19,7 +19,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.8.1
+  sdk: ^3.5.4
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -43,6 +43,19 @@ dependencies:
   image_picker: ^1.1.2
   agora_rtc_engine: ^6.3.2
   permission_handler: ^11.3.1
+  shared_preferences: ^2.3.3
+  record: ^6.2.0
+  audioplayers: ^6.1.0
+  path_provider: ^2.1.5
+  sqflite: ^2.3.3
+  path: ^1.9.0
+  connectivity_plus: ^6.1.4
+  video_player: ^2.9.2
+  video_compress: ^3.1.2
+  livekit_client: ^2.3.6
+  intl: ^0.20.2
+  tutorial_coach_mark: ^1.2.11
+  
 
 
   #lakbai
@@ -50,7 +63,6 @@ dependencies:
   animate_do: ^3.3.4
   hive: ^2.2.3
   hive_flutter: ^1.1.0
-  intl: ^0.18.1
   go_router: ^17.2.3
   flutter_animate: ^4.5.2
   flutter_markdown: ^0.7.7+1
@@ -79,9 +91,11 @@ flutter:
   uses-material-design: true
   assets:
     - assets/logo/shu/logo.png
-
-    #LakbAi
-    - assets/lakbai/
+    - assets/hanap_gawa/
+    - assets/hanapgawa-shaped-white-background-logo.png
+    - assets/hanapgawa-auth-logo-generated.png
+    - assets/hanapgawa-discover-center-logo.png
+    - assets/hanapgawa-wordmark.png
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg
