@@ -125,7 +125,7 @@ class _LakbaiPlannerScreenState extends State<LakbaiPlannerScreen> {
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         ),
                         hint: const Text('Choose a registered place...'),
-                        initialValue: _selectedDestination,
+                        value: _selectedDestination,
                         items: destinationsProvider.destinations.map((dest) {
                           final name = dest['name'] ?? dest['title'] ?? 'Unknown';
                           return DropdownMenuItem<String>(value: name, child: Text(name));
@@ -149,7 +149,7 @@ class _LakbaiPlannerScreenState extends State<LakbaiPlannerScreen> {
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF059669))),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         ),
-                        initialValue: _selectedBudget,
+                        value: _selectedBudget,
                         items: _budgets.map((b) => DropdownMenuItem(value: b, child: Text(b))).toList(),
                         onChanged: (value) => setState(() => _selectedBudget = value!),
                       ),

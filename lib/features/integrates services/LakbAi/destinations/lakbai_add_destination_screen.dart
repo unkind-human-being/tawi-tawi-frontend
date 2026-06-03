@@ -136,7 +136,7 @@ class _AddDestinationScreenState extends State<LakbaiAddDestinationScreen> {
               const SizedBox(height: 16),
 
               DropdownButtonFormField<String>(
-                initialValue: _selectedCategory,
+                value: _selectedCategory,
                 decoration: InputDecoration(labelText: 'Category', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
                 items: _categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
                 onChanged: (value) => setState(() => _selectedCategory = value!),
@@ -144,7 +144,7 @@ class _AddDestinationScreenState extends State<LakbaiAddDestinationScreen> {
               const SizedBox(height: 16),
 
               DropdownButtonFormField<String>(
-                initialValue: _selectedRegion,
+                value: _selectedRegion,
                 decoration: InputDecoration(labelText: 'Region', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
                 items: _regions.map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
                 onChanged: (value) => setState(() => _selectedRegion = value!),
