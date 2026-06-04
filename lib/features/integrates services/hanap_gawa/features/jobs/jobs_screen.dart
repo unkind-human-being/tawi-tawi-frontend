@@ -1539,8 +1539,11 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('Accepted Workers',
-                                    style: TextStyle(
+                                Text(
+                                    _job.postType == 'offering_service'
+                                        ? 'Accepted Clients'
+                                        : 'Accepted Workers',
+                                    style: const TextStyle(
                                         fontWeight: FontWeight.w900,
                                         fontSize: 16)),
                                 const SizedBox(height: 8),
