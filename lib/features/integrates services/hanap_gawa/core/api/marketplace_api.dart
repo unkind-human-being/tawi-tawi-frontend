@@ -672,6 +672,16 @@ class MarketplaceApi {
   Future<void> reopenJobPost(String jobPostId) async =>
       _patch('/jobs/$jobPostId/reopen', {}, auth: true);
 
+  Future<bool> toggleJobPost(String jobPostId) async {
+    final res = await _patch('/jobs/$jobPostId/toggle', {}, auth: true);
+    return res['isDisabled'] == true;
+  }
+
+  Future<JobPost> repostJobPost(String jobPostId) async {
+    final res = await _post('/jobs/$jobPostId/repost', {}, auth: true);
+    return JobPost.fromJson(res['jobPost'] as Map<String, dynamic>);
+  }
+
   Future<ProviderDetail> getProviderDetail(String providerUserId) async {
     final json = await _get('/providers/$providerUserId');
     return ProviderDetail.fromJson(json);

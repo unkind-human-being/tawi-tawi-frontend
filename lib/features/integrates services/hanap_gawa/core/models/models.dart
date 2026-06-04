@@ -594,6 +594,8 @@ class JobPost {
     this.acceptedWorkers = const [],
     required this.createdAt,
     this.allowDirectBooking = false,
+    this.isDisabled = false,
+    this.hasBeenReposted = false,
   });
   final String id;
   final String clientUserId;
@@ -615,6 +617,8 @@ class JobPost {
   final List<Map<String, dynamic>> acceptedWorkers;
   final DateTime createdAt;
   final bool allowDirectBooking;
+  final bool isDisabled;
+  final bool hasBeenReposted;
 
   factory JobPost.fromJson(Map<String, dynamic> json) => JobPost(
         id: json['id']?.toString() ?? '',
@@ -642,6 +646,8 @@ class JobPost {
             json['acceptedWorkers'], (m) => Map<String, dynamic>.from(m)),
         createdAt: parseDate(json['createdAt']),
         allowDirectBooking: json['allowDirectBooking'] == true,
+        isDisabled: json['isDisabled'] == true,
+        hasBeenReposted: json['hasBeenReposted'] == true,
       );
 
   Map<String, dynamic> toJson() => {
@@ -665,6 +671,8 @@ class JobPost {
         'acceptedWorkers': acceptedWorkers,
         'createdAt': createdAt.toIso8601String(),
         'allowDirectBooking': allowDirectBooking,
+        'isDisabled': isDisabled,
+        'hasBeenReposted': hasBeenReposted,
       };
 }
 

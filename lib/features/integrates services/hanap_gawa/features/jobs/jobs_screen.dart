@@ -142,7 +142,7 @@ class _JobsScreenState extends State<JobsScreen> {
     final userId = widget.api.storedUser?.id;
     final q = _searchCtrl.text.trim().toLowerCase();
     return _allJobs.where((j) {
-      if (j.clientUserId == userId || j.status != 'open') return false;
+      if (j.clientUserId == userId || j.status != 'open' || j.isDisabled) return false;
       if (q.isNotEmpty &&
           !j.title.toLowerCase().contains(q) &&
           !j.description.toLowerCase().contains(q) &&
@@ -417,24 +417,50 @@ class _JobsScreenState extends State<JobsScreen> {
                       onEdit: job.status == 'open'
                           ? () => _openCreateSheet(editPost: job)
                           : null,
-                      onDelete: job.status != 'open'
+                      onDelete: () async {
+                        if (!SyncService.instance.isOnline) {
+                          await LocalDb.instance.queueAction(
+                              'delete_job_post', {'jobPostId': job.id});
+                          _load();
+                        } else {
+                          try {
+                            await widget.api.deleteJobPost(job.id);
+                            _load();
+                          } catch (e) {
+                            if (SyncService.isNetworkError(e)) {
+                              await LocalDb.instance.queueAction(
+                                  'delete_job_post', {'jobPostId': job.id});
+                              _load();
+                            }
+                          }
+                        }
+                      },
+                      onToggle: job.status == 'open'
                           ? () async {
-                              if (!SyncService.instance.isOnline) {
-                                await LocalDb.instance.queueAction(
-                                    'delete_job_post', {'jobPostId': job.id});
+                              try {
+                                await widget.api.toggleJobPost(job.id);
                                 _load();
-                              } else {
-                                try {
-                                  await widget.api.deleteJobPost(job.id);
-                                  _load();
-                                } catch (e) {
-                                  if (SyncService.isNetworkError(e)) {
-                                    await LocalDb.instance.queueAction(
-                                        'delete_job_post',
-                                        {'jobPostId': job.id});
-                                    _load();
-                                  }
-                                }
+                              } catch (e) {
+                                if (!mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text(friendlyError(e))));
+                              }
+                            }
+                          : null,
+                      onRepost: job.status != 'open' && !job.hasBeenReposted
+                          ? () async {
+                              try {
+                                await widget.api.repostJobPost(job.id);
+                                _load();
+                                if (!mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                      content: Text('Job reposted as a new open post!')),
+                                );
+                              } catch (e) {
+                                if (!mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text(friendlyError(e))));
                               }
                             }
                           : null,
@@ -759,6 +785,8 @@ class _JobCard extends StatelessWidget {
     required this.onTap,
     this.onEdit,
     this.onDelete,
+    this.onToggle,
+    this.onRepost,
     this.onReport,
     this.onBook,
     this.bookingStatus,
@@ -768,6 +796,8 @@ class _JobCard extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onEdit;
   final Future<void> Function()? onDelete;
+  final Future<void> Function()? onToggle;
+  final Future<void> Function()? onRepost;
   final VoidCallback? onReport;
   final VoidCallback? onBook;
   final String? bookingStatus;
@@ -858,20 +888,66 @@ class _JobCard extends StatelessWidget {
                   label:
                       'P${job.budgetMin} - P${job.budgetMax ?? job.budgetMin}'),
           ]),
-          if (isOwner && (onEdit != null || onDelete != null))
+          if (isOwner)
             Padding(
               padding: const EdgeInsets.only(top: 10),
-              child: Row(children: [
-                Text(timeAgo(job.createdAt),
-                    style: const TextStyle(color: appMuted, fontSize: 12)),
-                const Spacer(),
-                if (onEdit != null)
-                  TextButton.icon(
-                      onPressed: onEdit,
-                      icon: const Icon(Icons.edit_outlined, size: 16),
-                      label: const Text('Edit')),
-                if (onDelete != null)
-                  TextButton.icon(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (job.isDisabled)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withAlpha(20),
+                        borderRadius: BorderRadius.circular(20),
+                        border:
+                            Border.all(color: Colors.orange.withAlpha(80)),
+                      ),
+                      child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(Icons.pause_circle_outline,
+                            size: 13, color: Colors.orange),
+                        SizedBox(width: 4),
+                        Text('Paused — hidden from workers',
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.orange,
+                                fontWeight: FontWeight.w600)),
+                      ]),
+                    ),
+                  Row(children: [
+                    Text(timeAgo(job.createdAt),
+                        style:
+                            const TextStyle(color: appMuted, fontSize: 12)),
+                    const Spacer(),
+                    if (onToggle != null)
+                      TextButton.icon(
+                        onPressed: () async => onToggle!(),
+                        icon: Icon(
+                            job.isDisabled
+                                ? Icons.play_circle_outline
+                                : Icons.pause_circle_outline,
+                            size: 16,
+                            color: Colors.orange),
+                        label: Text(job.isDisabled ? 'Resume' : 'Pause',
+                            style:
+                                const TextStyle(color: Colors.orange)),
+                      ),
+                    if (onEdit != null)
+                      TextButton.icon(
+                          onPressed: onEdit,
+                          icon: const Icon(Icons.edit_outlined, size: 16),
+                          label: const Text('Edit')),
+                    if (onRepost != null)
+                      TextButton.icon(
+                        onPressed: () async => onRepost!(),
+                        icon: const Icon(Icons.repeat_outlined,
+                            size: 16, color: appPrimary),
+                        label: const Text('Repost',
+                            style: TextStyle(color: appPrimary)),
+                      ),
+                    TextButton.icon(
                       onPressed: () async {
                         final confirmed = await showDialog<bool>(
                           context: context,
@@ -885,18 +961,24 @@ class _JobCard extends StatelessWidget {
                                       Navigator.pop(context, false),
                                   child: const Text('Cancel')),
                               FilledButton(
-                                  onPressed: () => Navigator.pop(context, true),
+                                  onPressed: () =>
+                                      Navigator.pop(context, true),
                                   child: const Text('Delete')),
                             ],
                           ),
                         );
-                        if (confirmed == true) await onDelete!();
+                        if (confirmed == true && onDelete != null) {
+                          await onDelete!();
+                        }
                       },
                       icon: const Icon(Icons.delete_outline,
                           size: 16, color: Colors.red),
                       label: const Text('Delete',
-                          style: TextStyle(color: Colors.red))),
-              ]),
+                          style: TextStyle(color: Colors.red)),
+                    ),
+                  ]),
+                ],
+              ),
             )
           else
             Padding(
