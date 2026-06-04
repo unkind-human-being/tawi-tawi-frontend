@@ -503,7 +503,7 @@ class _ShellScreenState extends State<ShellScreen> {
                       ],
                     ),
                     child: Image.asset(
-                      'assets/hanapgawa-shaped-white-background-logo.png',
+                      'assets/hanap_gawa/hanapgawa-shaped-white-background-logo.png',
                       width: _kFabSize,
                       height: _kFabSize,
                     ),

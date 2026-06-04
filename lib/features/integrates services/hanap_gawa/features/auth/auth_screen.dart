@@ -313,7 +313,7 @@ class _AuthScreenState extends State<AuthScreen> {
                           ],
                         ),
                         child: Image.asset(
-                          'assets/hanapgawa-shaped-white-background-logo.png',
+                          'assets/hanap_gawa/hanapgawa-shaped-white-background-logo.png',
                           fit: BoxFit.contain,
                           errorBuilder: (_, __, ___) => const Icon(
                             Icons.handshake_outlined,

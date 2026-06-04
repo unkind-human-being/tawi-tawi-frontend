@@ -614,7 +614,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
         title: Align(
           alignment: Alignment.centerLeft,
           child: Image.asset(
-            'assets/hanapgawa-wordmark.png',
+            'assets/hanap_gawa/hanapgawa-wordmark.png',
             height: 34,
             fit: BoxFit.contain,
             errorBuilder: (_, __, ___) => const Text('HanapGawa'),

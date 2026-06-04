@@ -113,7 +113,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       ClipRRect(
                         borderRadius: BorderRadius.circular(18),
                         child: Image.asset(
-                          'assets/hanapgawa-shaped-white-background-logo.png',
+                          'assets/hanap_gawa/hanapgawa-shaped-white-background-logo.png',
                           width: 58,
                           height: 58,
                           fit: BoxFit.cover,
@@ -131,7 +131,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       ),
                       const SizedBox(height: 12),
                       Image.asset(
-                        'assets/hanapgawa-wordmark.png',
+                        'assets/hanap_gawa/hanapgawa-wordmark.png',
                         height: 25,
                         errorBuilder: (_, __, ___) => const Text(
                           'HanapGawa',

@@ -250,7 +250,7 @@ class _SplashScreenState extends State<_SplashScreen>
                       ],
                     ),
                     child: Image.asset(
-                      'assets/hanapgawa-shaped-white-background-logo.png',
+                      'assets/hanap_gawa/hanapgawa-shaped-white-background-logo.png',
                       fit: BoxFit.contain,
                     ),
                   ),

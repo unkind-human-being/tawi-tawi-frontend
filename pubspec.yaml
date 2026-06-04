@@ -94,10 +94,6 @@ flutter:
     - assets/logo/shu/logo.png
     #hanap Gawa
     - assets/hanap_gawa/
-    - assets/hanapgawa-shaped-white-background-logo.png
-    - assets/hanapgawa-auth-logo-generated.png
-    - assets/hanapgawa-discover-center-logo.png
-    - assets/hanapgawa-wordmark.png
 
     #lakbai
     - assets/lakbai/
