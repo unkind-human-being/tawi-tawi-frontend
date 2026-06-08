@@ -9,40 +9,11 @@ import '../integrates services/LakbAi/widgets/lakbai_main_layout.dart';
 import '../integrates services/social_health/app service introduction/shu_introduction.dart';
 import '../integrates services/team ubbama/team ubbama_login_screen.dart' as team_ubbama_intro;
 
-<<<<<<< HEAD
-import '../integrates services/TDLF-Educ/app service introduction/introduction_screen.dart'
-    as tdlf_intro;
-import '../integrates services/team lodo/app service introduction/introduction_screen.dart'
-    as team_lodo_intro;
-import '../integrates services/team ubbama/app service introduction/introduction_screen.dart'
-    as team_ubbama_intro;
-
-// --- PAMEYAAN SUBSYSTEM CORE IMPORTS ---
-import '../integrates services/pameyaan/app service introduction/core/network/network_provider.dart';
-import '../integrates services/pameyaan/app service introduction/features/auth/screen/pameyaan_gateway_screen.dart';
-
-const Color _darkGreen = Color(0xFF064E3B);
-const Color _mainGreen = Color(0xFF0F766E);
-const Color _softGreen = Color(0xFFEFFAF5);
-const Color _blueAccent = Color(0xFF0B5ED7);
-const Color _pageBg = Color(0xFFF8FAF9);
-
-enum _ServiceRoute {
-  socialHealth,
-  hanapGawa,
-  lakbAi,
-  tdlfEduc,
-  teamLodo,
-  pameyaan, // Upgraded path definition
-  teamUbbama,
-}
-=======
 // New Services Imports
 import '../integrates services/hanap_gawa/app service introduction/introduction_screen.dart' as hanap_gawa_intro;
 import '../integrates services/pameyaan/app service introduction/introduction_screen.dart' as pameyaan_intro;
 import '../integrates services/TDLF-Educ/app service introduction/introduction_screen.dart' as educ_intro;
 import '../integrates services/mesh_messaging/app service introduction/inbox_screen.dart';
->>>>>>> c71801b64dd7ab66351b0b62210cd3c7b08f354c
 
 class HomeScreen extends StatefulWidget {
   final ValueChanged<int>? onSwitchTab;
@@ -59,155 +30,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Timer? _carouselTimer;
   int _currentCarouselIndex = 0;
 
-<<<<<<< HEAD
-  final List<_AppService> mainServices = const [
-    _AppService(
-      title: 'Health Updates',
-      subtitle: 'Social RHU health announcements, posts, surveys, events, and appointments',
-      icon: Icons.health_and_safety_outlined,
-      imageAsset: 'assets/logo/shu/logo.png',
-      color: Color(0xFFF0FDF4),
-      iconColor: Color(0xFF047857),
-      statusLabel: 'Live',
-      route: _ServiceRoute.socialHealth,
-    ),
-    _AppService(title: 'Pameyaan Transit',
-      subtitle: 'Calculate automated local fares, map active routes, and sync transit records logs',
-      icon: Icons.directions_boat_filled_rounded,
-      color: Color(0xFFE0F2FE),
-      iconColor: Color(0xFF0EA5E9),
-      statusLabel: 'Live',
-      route: _ServiceRoute.pameyaan,
-    ),
-    _AppService(
-      title: 'Hanap Gawa',
-      subtitle: 'Find local jobs, skilled workers, and service providers',
-      icon: Icons.work_outline_rounded,
-      color: Color(0xFFFEF3C7),
-      iconColor: Color(0xFFB45309),
-      statusLabel: 'Coming Soon',
-      route: _ServiceRoute.hanapGawa,
-    ),
-    _AppService(
-      title: 'LakbAi',
-      subtitle: 'Tourism, local travel guide, and smart trip assistance',
-      icon: Icons.travel_explore_rounded,
-      color: Color(0xFFEDE9FE),
-      iconColor: Color(0xFF6D28D9),
-      // 2. --- CHANGED: Status is now Live ---
-      statusLabel: 'Live',
-      route: _ServiceRoute.lakbAi,
-    ),
-    _AppService(
-      title: 'TDLF-Educ',
-      subtitle: 'Education tools, school materials, and learning resources',
-      icon: Icons.school_rounded,
-      color: Color(0xFFE0F2FE),
-      iconColor: Color(0xFF0369A1),
-      statusLabel: 'Coming Soon',
-      route: _ServiceRoute.tdlfEduc,
-    ),
-    _AppService(
-      title: 'Team Lodo',
-      subtitle: 'Community service module prepared for future integration',
-      icon: Icons.groups_2_rounded,
-      color: Color(0xFFDCFCE7),
-      iconColor: Color(0xFF15803D),
-      statusLabel: 'Coming Soon',
-      route: _ServiceRoute.teamLodo,
-    ),
-    _AppService(
-      title: 'Team Ubbama',
-      subtitle: 'Upcoming digital service for the Tawi-Tawi platform',
-      icon: Icons.public_rounded,
-      color: Color(0xFFFEE2E2),
-      iconColor: Color(0xFFB91C1C),
-      statusLabel: 'Coming Soon',
-      route: _ServiceRoute.teamUbbama,
-    ),
-  ];
-
-  final List<_QuickCategory> quickCategories = const [
-    _QuickCategory(
-      title: 'Health',
-      icon: Icons.local_hospital_rounded,
-      route: _ServiceRoute.socialHealth,
-    ),
-    _QuickCategory(
-      title: 'Transit',
-      icon: Icons.directions_boat_filled_rounded,
-      route: _ServiceRoute.pameyaan,
-    ),
-    _QuickCategory(
-      title: 'Jobs',
-      icon: Icons.badge_rounded,
-      route: _ServiceRoute.hanapGawa,
-    ),
-    _QuickCategory(
-      title: 'Travel',
-      icon: Icons.travel_explore_rounded,
-      route: _ServiceRoute.lakbAi,
-    ),
-    _QuickCategory(
-      title: 'Educ',
-      icon: Icons.school_rounded,
-      route: _ServiceRoute.tdlfEduc,
-    ),
-  ];
-
-  void _openPlaceholder(String title) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$title module will be added next.'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
-  void _openService(_ServiceRoute route) {
-    Widget screen;
-
-    switch (route) {
-      case _ServiceRoute.socialHealth:
-        screen = const ShuIntroductionScreen();
-        break;
-
-      case _ServiceRoute.pameyaan:
-        // Automatically encapsulate the required state layer on launch initialization
-        screen = MultiProvider(
-          providers: [
-            ChangeNotifierProvider(create: (_) => NetworkProvider()),
-          ],
-          child: const PameyaanGatewayScreen(),
-        );
-        break;
-
-      case _ServiceRoute.hanapGawa:
-        screen = const hanap_gawa_intro.HanapGawaIntroductionScreen();
-        break;
-
-      //CHANGED THIS: Replaced LakbaiHomeScreen with LakbaiMainLayout so the bottom tab bar is active
-      case _ServiceRoute.lakbAi:
-        screen = const LakbaiMainLayout(); 
-        break;
-
-      case _ServiceRoute.tdlfEduc:
-        screen = const tdlf_intro.TDLFEducIntroductionScreen();
-        break;
-
-      case _ServiceRoute.teamLodo:
-        screen = const team_lodo_intro.TeamLodoIntroductionScreen();
-        break;
-
-      case _ServiceRoute.teamUbbama:
-        screen = const team_ubbama_intro.TeamUbbamaIntroductionScreen();
-        break;
-    }
-
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => screen),
-    );
-=======
   final List<Map<String, String>> _carouselItems = [
     {
       'title': 'LakbAi',
@@ -262,7 +84,6 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }
     });
->>>>>>> c71801b64dd7ab66351b0b62210cd3c7b08f354c
   }
 
   void _navigateToService(BuildContext context, int index) {
@@ -351,176 +172,6 @@ class _HomeScreenState extends State<HomeScreen> {
     final firstName = userName.trim().isEmpty ? 'Citizen' : userName.trim().split(' ').first;
     final String initials = _getInitials(userName);
 
-<<<<<<< HEAD
-    return Scaffold(
-      backgroundColor: _pageBg,
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final bool isWide = constraints.maxWidth > 700;
-
-          return Center(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: isWide ? 620 : double.infinity,
-              ),
-              child: Stack(
-                children: [
-                  CustomScrollView(
-                    slivers: [
-                      SliverToBoxAdapter(
-                        child: _HeaderSection(
-                          userName: user?.fullName ?? 'Public User',
-                        ),
-                      ),
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
-                          child: _SearchBox(
-                            onTap: () => _openPlaceholder('Search'),
-                          ),
-                        ),
-                      ),
-                      SliverToBoxAdapter(
-                        child: _QuickCategoriesRow(
-                          categories: quickCategories,
-                          onTap: _openService,
-                        ),
-                      ),
-                      SliverToBoxAdapter(
-                        child: _PromoBanner(
-                          onTap: () => _openService(_ServiceRoute.socialHealth),
-                        ),
-                      ),
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
-                          child: Row(
-                            children: [
-                              const Expanded(
-                                child: Text(
-                                  'Featured Tawi-Tawi Services',
-                                  style: TextStyle(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w900,
-                                    color: Color(0xFF1F2937),
-                                  ),
-                                ),
-                              ),
-                              TextButton(
-                                onPressed: () => _openPlaceholder('All Services'),
-                                child: const Text(
-                                  'View All',
-                                  style: TextStyle(
-                                    color: _blueAccent,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: _FeatureCard(
-                                  title: 'Health\nPortal',
-                                  subtitle: 'RHU updates and services',
-                                  icon: Icons.health_and_safety_rounded,
-                                  backgroundColor: const Color(0xFFECFDF5),
-                                  iconColor: _mainGreen,
-                                  onTap: () =>
-                                      _openService(_ServiceRoute.socialHealth),
-                                ),
-                              ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: _FeatureCard(
-                                  title: 'Transit\nPortal',
-                                  subtitle: 'Local Pameyaan platform services',
-                                  icon: Icons.directions_boat_filled_rounded,
-                                  backgroundColor: const Color(0xFFEFF6FF),
-                                  iconColor: _blueAccent,
-                                  onTap: () =>
-                                      _openService(_ServiceRoute.pameyaan),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 28, 20, 0),
-                          child: _ServiceTabs(
-                            selectedTab: _selectedTab,
-                            onChanged: (value) {
-                              setState(() => _selectedTab = value);
-                            },
-                          ),
-                        ),
-                      ),
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 22, 20, 8),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  _selectedTab == 0
-                                      ? 'Available and Coming Services'
-                                      : 'Community App Modules',
-                                  style: const TextStyle(
-                                    fontSize: 21,
-                                    fontWeight: FontWeight.w900,
-                                    color: Color(0xFF1F2937),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            final service = mainServices[index];
-
-                            return Padding(
-                              padding: EdgeInsets.fromLTRB(
-                                20,
-                                index == 0 ? 4 : 8,
-                                20,
-                                8,
-                              ),
-                              child: _ServiceTile(
-                                service: service,
-                                onTap: () => _openService(service.route),
-                              ),
-                            );
-                          },
-                          childCount: mainServices.length,
-                        ),
-                      ),
-                      const SliverToBoxAdapter(
-                        child: SizedBox(height: 110),
-                      ),
-                    ],
-                  ),
-                  Align(
-                    alignment: Alignment.bottomCenter,
-                    child: _BottomNavBar(
-                      selectedIndex: 0,
-                      onTap: _onBottomTap,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-=======
     // The updated list of services with corrected categories and icons
     final List<Widget> serviceItems = [
       _buildServiceItem(
@@ -532,7 +183,6 @@ class _HomeScreenState extends State<HomeScreen> {
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const LakbaiMainLayout()),
->>>>>>> c71801b64dd7ab66351b0b62210cd3c7b08f354c
           );
         },
       ),

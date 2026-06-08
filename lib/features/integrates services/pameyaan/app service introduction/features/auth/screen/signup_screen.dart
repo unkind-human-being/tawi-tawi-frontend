@@ -188,7 +188,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 const Text('Discount Status', style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
-                  initialValue: _discountStatus,
+                  value: _discountStatus,
                   decoration: InputDecoration(
                     prefixIcon: const Icon(Icons.card_membership),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),

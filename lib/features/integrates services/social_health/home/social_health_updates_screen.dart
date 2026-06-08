@@ -564,14 +564,6 @@ class _SocialHealthUpdatesScreenState extends State<SocialHealthUpdatesScreen> {
     });
   }
 
-  void _showComingSoon(String featureName) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$featureName integration will be added next.'),
-        backgroundColor: const Color(0xFF0EA5E9),
-      ),
-    );
-  }
 
   Future<void> _logoutSocialHealth() async {
     await context.read<SocialHealthAuthProvider>().logout();

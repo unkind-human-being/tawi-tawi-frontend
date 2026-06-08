@@ -147,16 +147,14 @@ class _SocialHealthMessagesScreenState
       queryParameters: queryParameters,
     );
 
-    final http.Response response = await http
-        .get(
-          uri,
-          headers: <String, String>{
-            'Accept': 'application/json',
-            if (requiresAuth && token.trim().isNotEmpty)
-              'Authorization': 'Bearer $token',
-          },
-        )
-        .timeout(const Duration(seconds: 30));
+    final http.Response response = await http.get(
+      uri,
+      headers: <String, String>{
+        'Accept': 'application/json',
+        if (requiresAuth && token.trim().isNotEmpty)
+          'Authorization': 'Bearer $token',
+      },
+    ).timeout(const Duration(seconds: 30));
 
     return _handleResponse(response);
   }
@@ -405,8 +403,7 @@ class _AppointmentMessageGroup {
 
   bool get hasPrescriptionQr {
     return messages.any((Map<String, dynamic> message) {
-      return _readString(message, <String>['messageType']) ==
-          'prescription_qr';
+      return _readString(message, <String>['messageType']) == 'prescription_qr';
     });
   }
 
@@ -827,7 +824,11 @@ class _ThreadHeader extends StatelessWidget {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    '${_prettyAppointmentType(_readString(appointment, <String>['appointmentType']))} • ${_formatDateTimeText(_readString(appointment, <String>['scheduledAt']))}',
+                    '${_prettyAppointmentType(_readString(appointment, <String>[
+                          'appointmentType'
+                        ]))} • ${_formatDateTimeText(_readString(appointment, <String>[
+                          'scheduledAt'
+                        ]))}',
                     style: const TextStyle(
                       color: Color(0xFF64748B),
                       fontWeight: FontWeight.w700,
@@ -1246,48 +1247,6 @@ class _SocialHealthMessagesException implements Exception {
   const _SocialHealthMessagesException(this.message);
 
   final String message;
-}
-
-String _patientName(Map<String, dynamic> appointment) {
-  final String firstName = _readString(
-    appointment,
-    <String>['patientFirstName'],
-  );
-
-  final String middleInitial = _readString(
-    appointment,
-    <String>['patientMiddleInitial'],
-  );
-
-  final String lastName = _readString(
-    appointment,
-    <String>['patientLastName'],
-  );
-
-  final List<String> parts = <String>[
-    firstName,
-    middleInitial,
-    lastName,
-  ].where((String item) => item.trim().isNotEmpty).toList();
-
-  if (parts.isEmpty) {
-    final dynamic requestedBy = appointment['requestedBy'];
-
-    if (requestedBy is Map<String, dynamic>) {
-      final String fullName = _readString(
-        requestedBy,
-        <String>['fullName', 'email'],
-      );
-
-      if (fullName.trim().isNotEmpty) {
-        return fullName;
-      }
-    }
-
-    return 'Patient';
-  }
-
-  return parts.join(' ');
 }
 
 String _prettyService(String value) {

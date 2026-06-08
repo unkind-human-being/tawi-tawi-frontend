@@ -18,13 +18,10 @@ import 'features/integrates services/LakbAi/providers/lakbai_itinerary_provider.
 
 // --- MAIN APP AUTH & SERVICES ---
 import 'features/integrates services/social_health/auth/social_health_auth_provider.dart';
-<<<<<<< HEAD
-=======
 
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
 
->>>>>>> c71801b64dd7ab66351b0b62210cd3c7b08f354c
 import 'core/constants/api_constants.dart';
 import 'core/services/api_service.dart';
 import 'core/services/google_auth_service.dart';
@@ -96,19 +93,6 @@ Future<void> main() async {
   runApp(
     MultiProvider(
       providers: [
-<<<<<<< HEAD
-        ChangeNotifierProvider(create: (_) => SocialHealthAuthProvider()),
-        ChangeNotifierProvider(create: (_) => AuthProvider(authRepository)),
-        
-        // LakbAi Providers
-        ChangeNotifierProvider(create: (_) => LakbaiAuthProvider()),
-        ChangeNotifierProvider(create: (_) => LakbaiDestinationsProvider()),
-        ChangeNotifierProvider(create: (_) => LakbaiItineraryProvider()),
-        ChangeNotifierProvider(create: (_) => LakbaiAdminProvider()),
-        
-        // Pameyaan Network Provider
-        ChangeNotifierProvider(create: (_) => NetworkProvider()),
-=======
         ChangeNotifierProvider(
           create: (_) => ThemeProvider(),
         ),
@@ -124,7 +108,6 @@ Future<void> main() async {
       ChangeNotifierProvider(create: (_) => LakbaiDestinationsProvider()),
       ChangeNotifierProvider(create: (_) => LakbaiItineraryProvider()),
       ChangeNotifierProvider(create: (_) => LakbaiAdminProvider()),
->>>>>>> c71801b64dd7ab66351b0b62210cd3c7b08f354c
       ],
       child: const TawiTawiApp(),
     ),
