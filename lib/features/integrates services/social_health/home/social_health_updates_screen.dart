@@ -11,6 +11,7 @@ import '../messages/social_health_messages_screen.dart';
 import '../notifications/social_health_notifications_screen.dart';
 import '../../../auth/auth_provider.dart';
 import '../video/social_health_incoming_call_watcher.dart';
+import '../profile/social_health_profile_screen.dart';
 
 
 
@@ -112,7 +113,13 @@ class _SocialHealthUpdatesScreenState extends State<SocialHealthUpdatesScreen> {
     }
   }
   
-
+  void _openSocialHealthProfile() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const SocialHealthProfileScreen(),
+      ),
+    );
+  }
   Future<void> _loadNotificationUnreadCount() async {
     if (_isLoadingNotificationCount) {
       return;
@@ -806,9 +813,7 @@ class _SocialHealthUpdatesScreenState extends State<SocialHealthUpdatesScreen> {
           ),
           IconButton(
             tooltip: 'Social Health Profile',
-            onPressed: () {
-              _showComingSoon('Social Health Profile');
-            },
+            onPressed: _openSocialHealthProfile,
             icon: const Icon(Icons.account_circle_rounded),
           ),
         ],
@@ -825,7 +830,7 @@ class _SocialHealthUpdatesScreenState extends State<SocialHealthUpdatesScreen> {
         },
         onProfile: () {
           Navigator.of(context).pop();
-          _showComingSoon('Social Health Profile');
+          _openSocialHealthProfile();
         },
         onMessages: () {
           Navigator.of(context).pop();
