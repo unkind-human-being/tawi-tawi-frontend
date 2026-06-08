@@ -56,30 +56,22 @@ dependencies:
   intl: ^0.20.2
   tutorial_coach_mark: ^1.2.11
   
-  #lakbai
-<<<<<<< HEAD
-  lucide_icons: ^0.257.0    
-=======
->>>>>>> c71801b64dd7ab66351b0b62210cd3c7b08f354c
+#lakbai
   animate_do: ^3.3.4
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   go_router: ^16.2.3
   flutter_animate: ^4.5.2
   flutter_markdown: ^0.7.7+1
-<<<<<<< HEAD
+  lucide_icons_flutter: ^3.1.14+2
+  ##
   
   # --- NEW DEPENDENCIES FOR PAMEYAAN ---
   dio: ^5.4.3
   google_fonts: ^8.1.0
   firebase_core: ^4.10.0
   firebase_messaging: ^16.3.0
-  
-=======
-  lucide_icons_flutter: ^3.1.14+2
-  ##
 
->>>>>>> c71801b64dd7ab66351b0b62210cd3c7b08f354c
 dev_dependencies:
   flutter_test:
     sdk: flutter
