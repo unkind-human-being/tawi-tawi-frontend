@@ -1,3 +1,8 @@
+<<<<<<< HEAD
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET"/>
+=======
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
@@ -17,6 +22,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+>>>>>>> c71801b64dd7ab66351b0b62210cd3c7b08f354c
     <application
         android:label="Kawman"
         android:name="${applicationName}"
