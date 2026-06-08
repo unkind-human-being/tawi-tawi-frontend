@@ -16,10 +16,12 @@ import '../integrates services/TDLF-Educ/app service introduction/introduction_s
     as tdlf_intro;
 import '../integrates services/team lodo/app service introduction/introduction_screen.dart'
     as team_lodo_intro;
-import '../integrates services/pameyaan/app service introduction/introduction_screen.dart'
-    as team_rasman_intro;
 import '../integrates services/team ubbama/app service introduction/introduction_screen.dart'
     as team_ubbama_intro;
+
+// --- PAMEYAAN SUBSYSTEM CORE IMPORTS ---
+import '../integrates services/pameyaan/app service introduction/core/network/network_provider.dart';
+import '../integrates services/pameyaan/app service introduction/features/auth/screen/pameyaan_gateway_screen.dart';
 
 const Color _darkGreen = Color(0xFF064E3B);
 const Color _mainGreen = Color(0xFF0F766E);
@@ -33,7 +35,7 @@ enum _ServiceRoute {
   lakbAi,
   tdlfEduc,
   teamLodo,
-  teamRasman,
+  pameyaan, // Upgraded path definition
   teamUbbama,
 }
 
@@ -47,14 +49,6 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedTab = 0;
 
-  /*
-    DEVELOPER NOTE:
-    To integrate a real app later:
-    1. Add the app screen import above.
-    2. Add the service here in mainServices.
-    3. Add a case inside _openService().
-    4. Replace the coming soon screen with the real app screen.
-  */
   final List<_AppService> mainServices = const [
     _AppService(
       title: 'Health Updates',
@@ -66,15 +60,22 @@ class _HomeScreenState extends State<HomeScreen> {
       statusLabel: 'Live',
       route: _ServiceRoute.socialHealth,
     ),
+    _AppService(title: 'Pameyaan Transit',
+      subtitle: 'Calculate automated local fares, map active routes, and sync transit records logs',
+      icon: Icons.directions_boat_filled_rounded,
+      color: Color(0xFFE0F2FE),
+      iconColor: Color(0xFF0EA5E9),
+      statusLabel: 'Live',
+      route: _ServiceRoute.pameyaan,
+    ),
     _AppService(
-      title: 'LakbAi',
-      subtitle: 'Tourism, local travel guide, and smart trip assistance',
-      icon: Icons.travel_explore_rounded,
-      color: Color(0xFFEDE9FE),
-      iconColor: Color(0xFF6D28D9),
-      //  CHANGED THIS: Status is Live
-      statusLabel: 'Live', 
-      route: _ServiceRoute.lakbAi,
+      title: 'Hanap Gawa',
+      subtitle: 'Find local jobs, skilled workers, and service providers',
+      icon: Icons.work_outline_rounded,
+      color: Color(0xFFFEF3C7),
+      iconColor: Color(0xFFB45309),
+      statusLabel: 'Coming Soon',
+      route: _ServiceRoute.hanapGawa,
     ),
     _AppService(
       title: 'LakbAi',
@@ -105,15 +106,6 @@ class _HomeScreenState extends State<HomeScreen> {
       route: _ServiceRoute.teamLodo,
     ),
     _AppService(
-      title: 'Team Rasman',
-      subtitle: 'Local app module prepared for future integration',
-      icon: Icons.apps_rounded,
-      color: Color(0xFFFCE7F3),
-      iconColor: Color(0xFFBE185D),
-      statusLabel: 'Coming Soon',
-      route: _ServiceRoute.teamRasman,
-    ),
-    _AppService(
       title: 'Team Ubbama',
       subtitle: 'Upcoming digital service for the Tawi-Tawi platform',
       icon: Icons.public_rounded,
@@ -131,6 +123,11 @@ class _HomeScreenState extends State<HomeScreen> {
       route: _ServiceRoute.socialHealth,
     ),
     _QuickCategory(
+      title: 'Transit',
+      icon: Icons.directions_boat_filled_rounded,
+      route: _ServiceRoute.pameyaan,
+    ),
+    _QuickCategory(
       title: 'Jobs',
       icon: Icons.badge_rounded,
       route: _ServiceRoute.hanapGawa,
@@ -144,11 +141,6 @@ class _HomeScreenState extends State<HomeScreen> {
       title: 'Educ',
       icon: Icons.school_rounded,
       route: _ServiceRoute.tdlfEduc,
-    ),
-    _QuickCategory(
-      title: 'Apps',
-      icon: Icons.apps_rounded,
-      route: _ServiceRoute.teamLodo,
     ),
   ];
 
@@ -169,6 +161,16 @@ class _HomeScreenState extends State<HomeScreen> {
         screen = const ShuIntroductionScreen();
         break;
 
+      case _ServiceRoute.pameyaan:
+        // Automatically encapsulate the required state layer on launch initialization
+        screen = MultiProvider(
+          providers: [
+            ChangeNotifierProvider(create: (_) => NetworkProvider()),
+          ],
+          child: const PameyaanGatewayScreen(),
+        );
+        break;
+
       case _ServiceRoute.hanapGawa:
         screen = const hanap_gawa_intro.HanapGawaIntroductionScreen();
         break;
@@ -184,10 +186,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
       case _ServiceRoute.teamLodo:
         screen = const team_lodo_intro.TeamLodoIntroductionScreen();
-        break;
-
-      case _ServiceRoute.teamRasman:
-        screen = const team_rasman_intro.TeamRasmanIntroductionScreen();
         break;
 
       case _ServiceRoute.teamUbbama:
@@ -308,13 +306,13 @@ class _HomeScreenState extends State<HomeScreen> {
                               const SizedBox(width: 14),
                               Expanded(
                                 child: _FeatureCard(
-                                  title: 'Coming\nApps',
-                                  subtitle: 'More services soon',
-                                  icon: Icons.apps_rounded,
+                                  title: 'Transit\nPortal',
+                                  subtitle: 'Local Pameyaan platform services',
+                                  icon: Icons.directions_boat_filled_rounded,
                                   backgroundColor: const Color(0xFFEFF6FF),
                                   iconColor: _blueAccent,
                                   onTap: () =>
-                                      _openService(_ServiceRoute.teamLodo),
+                                      _openService(_ServiceRoute.pameyaan),
                                 ),
                               ),
                             ],
