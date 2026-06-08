@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'auth_provider.dart';
 import 'register_screen.dart';
-import '../home/home_screen.dart';
+import '../main/main_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -122,7 +122,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void _goToHome() {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-        builder: (_) => const HomeScreen(),
+        builder: (_) => const MainScreen(),
       ),
     );
   }
@@ -261,7 +261,7 @@ class _CompactHeader extends StatelessWidget {
         ),
         const SizedBox(height: 18),
         const Text(
-          'Tawi-Tawi App',
+          'Kawman',
           textAlign: TextAlign.center,
           style: TextStyle(
             color: Colors.white,
@@ -463,11 +463,9 @@ class _LoginCard extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 10),
-              const _SecurityNote(),
-            ],
+              ],
+            ),
           ),
-        ),
       ),
     );
   }
@@ -548,43 +546,6 @@ class _InlineError extends StatelessWidget {
   }
 }
 
-class _SecurityNote extends StatelessWidget {
-  const _SecurityNote();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: const Color(0xFFE5E7EB),
-        ),
-      ),
-      child: const Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Icon(
-            Icons.security_rounded,
-            color: Color(0xFF0F766E),
-          ),
-          SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              'Your Tawi-Tawi account is separate from the RHU Social Health login inside the Health module.',
-              style: TextStyle(
-                color: Color(0xFF64748B),
-                height: 1.4,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _FooterNote extends StatelessWidget {
   const _FooterNote();

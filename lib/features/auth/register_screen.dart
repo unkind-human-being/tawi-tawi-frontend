@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'auth_provider.dart';
-import '../home/home_screen.dart';
+import '../main/main_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -110,7 +110,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(
-          builder: (_) => const HomeScreen(),
+          builder: (_) => const MainScreen(),
         ),
         (_) => false,
       );
@@ -471,11 +471,6 @@ class _RegisterHeroPanel extends StatelessWidget {
             icon: Icons.map_rounded,
             text: 'Access local Tawi-Tawi services',
           ),
-          const SizedBox(height: 12),
-          const _HeroFeature(
-            icon: Icons.health_and_safety_rounded,
-            text: 'Separate RHU Social Health login inside Health',
-          ),
           const SizedBox(height: 26),
           const _FooterNote(),
         ],
@@ -707,8 +702,6 @@ class _RegisterCard extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 10),
-              const _SecurityNote(),
             ],
           ),
         ),
@@ -796,43 +789,7 @@ class _InlineError extends StatelessWidget {
   }
 }
 
-class _SecurityNote extends StatelessWidget {
-  const _SecurityNote();
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: const Color(0xFFE5E7EB),
-        ),
-      ),
-      child: const Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Icon(
-            Icons.security_rounded,
-            color: Color(0xFF0F766E),
-          ),
-          SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              'Your Tawi-Tawi account is separate from the RHU Social Health account inside the Health module.',
-              style: TextStyle(
-                color: Color(0xFF64748B),
-                height: 1.4,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _PortalBadge extends StatelessWidget {
   const _PortalBadge();

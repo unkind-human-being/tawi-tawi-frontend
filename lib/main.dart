@@ -9,7 +9,8 @@ import 'features/integrates services/LakbAi/providers/lakbai_destinations_provid
 import 'features/integrates services/LakbAi/providers/lakbai_itinerary_provider.dart';
 import 'features/integrates services/social_health/auth/social_health_auth_provider.dart';
 
-
+import 'core/theme/app_theme.dart';
+import 'core/theme/theme_provider.dart';
 
 import 'core/constants/api_constants.dart';
 import 'core/services/api_service.dart';
@@ -19,7 +20,8 @@ import 'core/services/secure_storage_service.dart';
 import 'data/repositories/auth_repository.dart';
 import 'data/services/auth_api_service.dart';
 import 'features/auth/auth_provider.dart';
-import 'features/splash/splash_screen.dart';
+import 'features/auth/login_screen.dart';
+import 'features/main/main_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -53,15 +55,21 @@ Future<void> main() async {
     metaAuthService: metaAuthService,
   );
 
+  final authProvider = AuthProvider(authRepository);
+  await authProvider.initialize();
+
   runApp(
     MultiProvider(
       
       providers: [
         ChangeNotifierProvider(
-          create: (_) => SocialHealthAuthProvider(),
+          create: (_) => ThemeProvider(),
         ),
         ChangeNotifierProvider(
-          create: (_) => AuthProvider(authRepository),
+          create: (_) => SocialHealthAuthProvider(),
+        ),
+        ChangeNotifierProvider.value(
+          value: authProvider,
         ),
 
           // ADD THESE LINES inside your MultiProvider's list:
@@ -82,82 +90,17 @@ class TawiTawiApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const darkGreen = Color(0xFF064E3B);
-    const mainGreen = Color(0xFF0F766E);
-    const softGreen = Color(0xFFEFFAF5);
+    final themeProvider = context.watch<ThemeProvider>();
+    final authProvider = context.watch<AuthProvider>();
 
     return MaterialApp(
-      title: 'Tawi-Tawi App',
+      title: 'Kawman',
       debugShowCheckedModeBanner: false,
       scrollBehavior: const NoScrollbarScrollBehavior(),
-      theme: ThemeData(
-        useMaterial3: true,
-        scaffoldBackgroundColor: softGreen,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: mainGreen,
-          primary: mainGreen,
-          secondary: darkGreen,
-          surface: Colors.white,
-        ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: darkGreen,
-          foregroundColor: Colors.white,
-          centerTitle: true,
-          elevation: 0,
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 16,
-          ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(18),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(18),
-            borderSide: BorderSide(
-              color: Colors.green.shade100,
-            ),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(18),
-            borderSide: const BorderSide(
-              color: mainGreen,
-              width: 2,
-            ),
-          ),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: darkGreen,
-            foregroundColor: Colors.white,
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18),
-            ),
-            textStyle: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-        outlinedButtonTheme: OutlinedButtonThemeData(
-          style: OutlinedButton.styleFrom(
-            foregroundColor: darkGreen,
-            side: const BorderSide(color: darkGreen),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18),
-            ),
-            textStyle: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-      ),
-      home: const SplashScreen(),
+      themeMode: themeProvider.themeMode,
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      home: authProvider.isAuthenticated ? const MainScreen() : const LoginScreen(),
     );
   }
 }

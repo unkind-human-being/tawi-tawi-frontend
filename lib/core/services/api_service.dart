@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../constants/api_constants.dart';
@@ -57,18 +58,25 @@ class ApiService {
     Map<String, dynamic> variables = const <String, dynamic>{},
     String? token,
   }) async {
-    final http.Response response = await http
-        .post(
-          Uri.parse(ApiConstants.graphql),
-          headers: _headers(token: token),
-          body: jsonEncode(<String, dynamic>{
-            'query': query,
-            'variables': variables,
-          }),
-        )
-        .timeout(const Duration(seconds: 30));
+    try {
+      final String targetUrl = ApiConstants.graphql;
+      debugPrint('=========================================');
+      debugPrint('GraphQL POST Request to: $targetUrl');
+      debugPrint('Variables: $variables');
+      debugPrint('=========================================');
 
-    final Map<String, dynamic> decoded = _handleResponse(response);
+      final http.Response response = await http
+          .post(
+            Uri.parse(targetUrl),
+            headers: _headers(token: token),
+            body: jsonEncode(<String, dynamic>{
+              'query': query,
+              'variables': variables,
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      final Map<String, dynamic> decoded = _handleResponse(response);
 
     final dynamic errors = decoded['errors'];
 
@@ -86,13 +94,21 @@ class ApiService {
       throw Exception('GraphQL request failed.');
     }
 
-    final dynamic data = decoded['data'];
+      final dynamic data = decoded['data'];
 
-    if (data is! Map<String, dynamic>) {
-      throw Exception('Invalid GraphQL response.');
+      if (data is! Map<String, dynamic>) {
+        throw Exception('Invalid GraphQL response.');
+      }
+
+      return data;
+    } catch (e, stackTrace) {
+      debugPrint('================= API ERROR =================');
+      debugPrint('Type: ${e.runtimeType}');
+      debugPrint('Error: $e');
+      debugPrint('Stacktrace: $stackTrace');
+      debugPrint('=============================================');
+      rethrow;
     }
-
-    return data;
   }
 
   Map<String, String> _headers({String? token}) {
