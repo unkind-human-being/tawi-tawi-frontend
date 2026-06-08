@@ -1,45 +1,54 @@
+// lib/features/profile/profile_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../auth/auth_provider.dart';
 import '../auth/login_screen.dart';
-import '../home/home_screen.dart';
-
-const Color _darkGreen = Color(0xFF064E3B);
-const Color _mainGreen = Color(0xFF0F766E);
-const Color _softGreen = Color(0xFFEFFAF5);
-const Color _pageBg = Color(0xFFFFFFFF);
-const Color _mutedText = Color(0xFF64748B);
-const Color _darkText = Color(0xFF0F172A);
+import 'settings/settings_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
   Future<void> _logout(BuildContext context) async {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final Color darkText = isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A);
+    final Color mutedText = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final Color buttonColor = isDark ? const Color(0xFF14B8A6) : const Color(0xFF064E3B);
+
     final bool? confirm = await showDialog<bool>(
       context: context,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
+          backgroundColor: cardBg,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(22),
           ),
-          title: const Text(
+          title: Text(
             'Log out?',
-            style: TextStyle(fontWeight: FontWeight.w900),
+            style: TextStyle(
+              color: darkText,
+              fontWeight: FontWeight.w900,
+            ),
           ),
-          content: const Text(
+          content: Text(
             'You will be returned to the login screen.',
+            style: TextStyle(color: mutedText),
           ),
           actions: <Widget>[
             TextButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop(false);
               },
-              child: const Text('Cancel'),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: mutedText),
+              ),
             ),
             FilledButton(
               style: FilledButton.styleFrom(
-                backgroundColor: _darkGreen,
+                backgroundColor: buttonColor,
+                foregroundColor: Colors.white,
               ),
               onPressed: () {
                 Navigator.of(dialogContext).pop(true);
@@ -75,20 +84,20 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  void _goHome(BuildContext context) {
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(
-        builder: (_) => const HomeScreen(),
-      ),
-      (Route<dynamic> route) => false,
-    );
-  }
-
   void _showComingSoon(BuildContext context, String title) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color mainGreen = isDark ? const Color(0xFF2DD4BF) : const Color(0xFF0F766E);
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('$title will be added next.'),
-        backgroundColor: _mainGreen,
+        content: Text(
+          '$title will be added next.',
+          style: TextStyle(
+            color: isDark ? const Color(0xFF0F172A) : Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        backgroundColor: mainGreen,
       ),
     );
   }
@@ -131,8 +140,11 @@ class ProfileScreen extends StatelessWidget {
 
     final String initials = _getInitials(fullName);
 
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color pageBg = isDark ? const Color(0xFF0F172A) : const Color(0xFFFFFFFF);
+
     return Scaffold(
-      backgroundColor: _pageBg,
+      backgroundColor: pageBg,
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -175,14 +187,14 @@ class ProfileScreen extends StatelessWidget {
                       ),
                       _AccountMenuItem(
                         icon: Icons.info_outline_rounded,
-                        title: 'About Tawi-Tawi App',
+                        title: 'About Kawman',
                         subtitle: 'Learn about this public portal',
                         onTap: () {
                           _showInfoSheet(
                             context,
-                            title: 'About Tawi-Tawi App',
+                            title: 'About Kawman',
                             message:
-                                'Tawi-Tawi App is a public access portal for local information, services, and integrated public modules such as RHU Social Health Updates.',
+                                'Kawman is a public access portal for local information, services, and integrated public modules such as RHU Social Health Updates.',
                           );
                         },
                       ),
@@ -208,7 +220,7 @@ class ProfileScreen extends StatelessWidget {
                             context,
                             title: 'Contact Us',
                             message:
-                                'For support, contact your system administrator or the assigned Tawi-Tawi app support team.',
+                                'For support, contact your system administrator or the assigned Kawman app support team.',
                           );
                         },
                       ),
@@ -225,7 +237,12 @@ class ProfileScreen extends StatelessWidget {
                         title: 'Settings',
                         subtitle: 'Manage app preferences',
                         onTap: () {
-                          _showComingSoon(context, 'Settings');
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const SettingsScreen(),
+                            ),
+                          );
                         },
                       ),
                       _AccountMenuItem(
@@ -245,27 +262,6 @@ class ProfileScreen extends StatelessWidget {
           ),
         ),
       ),
-      bottomNavigationBar: _AccountBottomNavBar(
-        currentIndex: 4,
-        onTap: (int index) {
-          switch (index) {
-            case 0:
-              _goHome(context);
-              break;
-            case 1:
-              _showComingSoon(context, 'Scan');
-              break;
-            case 2:
-              _showComingSoon(context, 'Digital ID');
-              break;
-            case 3:
-              _showComingSoon(context, 'History');
-              break;
-            case 4:
-              break;
-          }
-        },
-      ),
     );
   }
 
@@ -276,6 +272,10 @@ class ProfileScreen extends StatelessWidget {
     required String status,
     required String userId,
   }) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color darkText = isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A);
+    final Color buttonColor = isDark ? const Color(0xFF14B8A6) : const Color(0xFF064E3B);
+
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -286,10 +286,10 @@ class ProfileScreen extends StatelessWidget {
             children: <Widget>[
               const _SheetHandle(),
               const SizedBox(height: 14),
-              const Text(
+              Text(
                 'Personal Information',
                 style: TextStyle(
-                  color: _darkText,
+                  color: darkText,
                   fontSize: 22,
                   fontWeight: FontWeight.w900,
                 ),
@@ -320,7 +320,8 @@ class ProfileScreen extends StatelessWidget {
                 width: double.infinity,
                 child: FilledButton(
                   style: FilledButton.styleFrom(
-                    backgroundColor: _darkGreen,
+                    backgroundColor: buttonColor,
+                    foregroundColor: Colors.white,
                   ),
                   onPressed: () {
                     Navigator.of(context).pop();
@@ -340,6 +341,11 @@ class ProfileScreen extends StatelessWidget {
     required String title,
     required String message,
   }) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color darkText = isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A);
+    final Color mutedText = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final Color buttonColor = isDark ? const Color(0xFF14B8A6) : const Color(0xFF064E3B);
+
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -353,8 +359,8 @@ class ProfileScreen extends StatelessWidget {
               Text(
                 title,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: _darkText,
+                style: TextStyle(
+                  color: darkText,
                   fontSize: 22,
                   fontWeight: FontWeight.w900,
                 ),
@@ -363,8 +369,8 @@ class ProfileScreen extends StatelessWidget {
               Text(
                 message,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: _mutedText,
+                style: TextStyle(
+                  color: mutedText,
                   height: 1.45,
                   fontWeight: FontWeight.w600,
                 ),
@@ -374,7 +380,8 @@ class ProfileScreen extends StatelessWidget {
                 width: double.infinity,
                 child: FilledButton(
                   style: FilledButton.styleFrom(
-                    backgroundColor: _darkGreen,
+                    backgroundColor: buttonColor,
+                    foregroundColor: Colors.white,
                   ),
                   onPressed: () {
                     Navigator.of(context).pop();
@@ -395,13 +402,16 @@ class _AccountAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.fromLTRB(18, 16, 18, 8),
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color darkText = isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 8),
       child: Center(
         child: Text(
           'Account',
           style: TextStyle(
-            color: _darkText,
+            color: darkText,
             fontSize: 18,
             fontWeight: FontWeight.w900,
           ),
@@ -426,6 +436,12 @@ class _AccountHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color softGreen = isDark ? const Color(0xFF134E4A) : const Color(0xFFEFFAF5);
+    final Color mainGreen = isDark ? const Color(0xFF2DD4BF) : const Color(0xFF0F766E);
+    final Color darkText = isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A);
+    final Color mutedText = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+
     return Stack(
       clipBehavior: Clip.none,
       children: <Widget>[
@@ -436,11 +452,11 @@ class _AccountHeader extends StatelessWidget {
             children: <Widget>[
               CircleAvatar(
                 radius: 34,
-                backgroundColor: _softGreen,
+                backgroundColor: softGreen,
                 child: Text(
                   initials,
-                  style: const TextStyle(
-                    color: _darkGreen,
+                  style: TextStyle(
+                    color: mainGreen,
                     fontSize: 24,
                     fontWeight: FontWeight.w900,
                   ),
@@ -455,8 +471,8 @@ class _AccountHeader extends StatelessWidget {
                       'Hi, ${fullName.toUpperCase()}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: _darkText,
+                      style: TextStyle(
+                        color: darkText,
                         fontSize: 18,
                         fontWeight: FontWeight.w900,
                       ),
@@ -466,8 +482,8 @@ class _AccountHeader extends StatelessWidget {
                       status.toUpperCase(),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: _mainGreen,
+                      style: TextStyle(
+                        color: mainGreen,
                         fontSize: 12,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 0.3,
@@ -478,8 +494,8 @@ class _AccountHeader extends StatelessWidget {
                       email.toUpperCase(),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: _mutedText,
+                      style: TextStyle(
+                        color: mutedText,
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
                       ),
@@ -503,6 +519,12 @@ class _AccountHeader extends StatelessWidget {
 class _DecorativeMark extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color centerColor = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final Color borderColor = isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A);
+    final Color innerCircleColor = isDark ? const Color(0xFF334155) : Colors.grey.shade200;
+    final Color innerBorderColor = isDark ? const Color(0xFF475569) : Colors.grey.shade400;
+
     return SizedBox(
       width: 78,
       height: 78,
@@ -549,10 +571,10 @@ class _DecorativeMark extends StatelessWidget {
             width: 52,
             height: 52,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: centerColor,
               shape: BoxShape.circle,
               border: Border.all(
-                color: _darkText,
+                color: borderColor,
                 width: 7,
               ),
               boxShadow: <BoxShadow>[
@@ -568,10 +590,10 @@ class _DecorativeMark extends StatelessWidget {
             width: 28,
             height: 28,
             decoration: BoxDecoration(
-              color: Colors.grey.shade200,
+              color: innerCircleColor,
               shape: BoxShape.circle,
               border: Border.all(
-                color: Colors.grey.shade400,
+                color: innerBorderColor,
                 width: 2,
               ),
             ),
@@ -599,16 +621,22 @@ class _AccountMenuItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color activeColor = isDanger ? const Color(0xFFDC2626) : _darkGreen;
-    final Color arrowColor = isDanger ? const Color(0xFFDC2626) : _mainGreen;
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    final Color darkText = isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A);
+    final Color mutedText = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    final Color mainGreen = isDark ? const Color(0xFF2DD4BF) : const Color(0xFF0F766E);
+    final Color activeColor = isDanger ? const Color(0xFFEF4444) : mainGreen;
+    final Color arrowColor = isDanger ? const Color(0xFFEF4444) : mainGreen;
+    final Color dangerText = isDark ? const Color(0xFFFCA5A5) : const Color(0xFF991B1B);
 
     return Material(
-      color: Colors.white,
+      color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(18),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 13),
+          padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 8),
           child: Row(
             children: <Widget>[
               SizedBox(
@@ -627,7 +655,7 @@ class _AccountMenuItem extends StatelessWidget {
                     Text(
                       title,
                       style: TextStyle(
-                        color: isDanger ? const Color(0xFF991B1B) : _darkText,
+                        color: isDanger ? dangerText : darkText,
                         fontSize: 15,
                         fontWeight: FontWeight.w900,
                       ),
@@ -638,8 +666,8 @@ class _AccountMenuItem extends StatelessWidget {
                         subtitle!,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: _mutedText,
+                        style: TextStyle(
+                          color: mutedText,
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                         ),
@@ -661,199 +689,6 @@ class _AccountMenuItem extends StatelessWidget {
   }
 }
 
-class _AccountBottomNavBar extends StatelessWidget {
-  const _AccountBottomNavBar({
-    required this.currentIndex,
-    required this.onTap,
-  });
-
-  final int currentIndex;
-  final ValueChanged<int> onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final List<_NavItemData> items = <_NavItemData>[
-      const _NavItemData(
-        icon: Icons.home_rounded,
-        label: 'Home',
-      ),
-      const _NavItemData(
-        icon: Icons.qr_code_scanner_rounded,
-        label: 'Scan',
-      ),
-      const _NavItemData(
-        icon: Icons.badge_rounded,
-        label: 'Digital ID',
-        isCenter: true,
-      ),
-      const _NavItemData(
-        icon: Icons.receipt_long_rounded,
-        label: 'History',
-      ),
-      const _NavItemData(
-        icon: Icons.grid_view_rounded,
-        label: 'Account',
-      ),
-    ];
-
-    return SafeArea(
-      top: false,
-      child: Container(
-        height: 78,
-        padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 18,
-              offset: const Offset(0, -6),
-            ),
-          ],
-        ),
-        child: Row(
-          children: List<Widget>.generate(items.length, (int index) {
-            final _NavItemData item = items[index];
-            final bool selected = index == currentIndex;
-
-            return Expanded(
-              child: item.isCenter
-                  ? _CenterNavButton(
-                      selected: selected,
-                      item: item,
-                      onTap: () => onTap(index),
-                    )
-                  : _NormalNavButton(
-                      selected: selected,
-                      item: item,
-                      onTap: () => onTap(index),
-                    ),
-            );
-          }),
-        ),
-      ),
-    );
-  }
-}
-
-class _NormalNavButton extends StatelessWidget {
-  const _NormalNavButton({
-    required this.selected,
-    required this.item,
-    required this.onTap,
-  });
-
-  final bool selected;
-  final _NavItemData item;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final Color color = selected ? _mainGreen : const Color(0xFF334155);
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: onTap,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          Icon(
-            item.icon,
-            color: color,
-            size: 24,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            item.label,
-            style: TextStyle(
-              color: color,
-              fontSize: 11,
-              fontWeight: selected ? FontWeight.w900 : FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CenterNavButton extends StatelessWidget {
-  const _CenterNavButton({
-    required this.selected,
-    required this.item,
-    required this.onTap,
-  });
-
-  final bool selected;
-  final _NavItemData item;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Transform.translate(
-      offset: const Offset(0, -12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(999),
-        onTap: onTap,
-        child: Column(
-          children: <Widget>[
-            Container(
-              width: 58,
-              height: 58,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: const LinearGradient(
-                  colors: <Color>[
-                    _darkGreen,
-                    _mainGreen,
-                  ],
-                ),
-                border: Border.all(
-                  color: Colors.white,
-                  width: 4,
-                ),
-                boxShadow: <BoxShadow>[
-                  BoxShadow(
-                    color: _mainGreen.withValues(alpha: 0.28),
-                    blurRadius: 16,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Icon(
-                item.icon,
-                color: Colors.white,
-                size: 28,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              item.label,
-              style: const TextStyle(
-                color: _mainGreen,
-                fontSize: 10,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _NavItemData {
-  const _NavItemData({
-    required this.icon,
-    required this.label,
-    this.isCenter = false,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool isCenter;
-}
-
 class _BottomSheetContainer extends StatelessWidget {
   const _BottomSheetContainer({
     required this.child,
@@ -863,14 +698,17 @@ class _BottomSheetContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+
     return SafeArea(
       top: false,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.fromLTRB(22, 14, 22, 22),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: const BorderRadius.vertical(
             top: Radius.circular(28),
           ),
         ),
@@ -885,11 +723,14 @@ class _SheetHandle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color handleColor = isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1);
+
     return Container(
       width: 46,
       height: 5,
       decoration: BoxDecoration(
-        color: const Color(0xFFCBD5E1),
+        color: handleColor,
         borderRadius: BorderRadius.circular(999),
       ),
     );
@@ -909,21 +750,29 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    final Color rowBg = isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
+    final Color borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE5E7EB);
+    final Color mainGreen = isDark ? const Color(0xFF2DD4BF) : const Color(0xFF0F766E);
+    final Color darkText = isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A);
+    final Color mutedText = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: rowBg,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: const Color(0xFFE5E7EB),
+          color: borderColor,
         ),
       ),
       child: Row(
         children: <Widget>[
           Icon(
             icon,
-            color: _mainGreen,
+            color: mainGreen,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -932,8 +781,8 @@ class _InfoRow extends StatelessWidget {
               children: <Widget>[
                 Text(
                   label,
-                  style: const TextStyle(
-                    color: _mutedText,
+                  style: TextStyle(
+                    color: mutedText,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),
@@ -941,8 +790,8 @@ class _InfoRow extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   value,
-                  style: const TextStyle(
-                    color: _darkText,
+                  style: TextStyle(
+                    color: darkText,
                     fontWeight: FontWeight.w900,
                   ),
                 ),

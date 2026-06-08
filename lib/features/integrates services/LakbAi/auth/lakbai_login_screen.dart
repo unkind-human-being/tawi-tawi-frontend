@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../providers/lakbai_auth_provider.dart';
 import '../widgets/lakbai_main_layout.dart';
 import 'lakbai_signup_screen.dart'; 

@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 
 import '../../data/models/user_model.dart';
 import '../../data/repositories/auth_repository.dart';
@@ -10,6 +11,8 @@ enum AuthStatus {
 }
 
 class AuthProvider extends ChangeNotifier {
+  static const platform = MethodChannel('com.rhyn.reach/messaging');
+
   final AuthRepository _authRepository;
 
   AuthProvider(this._authRepository);
@@ -41,9 +44,6 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> initialize() async {
-    _setLoading(true);
-    _clearError();
-
     try {
       final UserModel? currentUser = await _authRepository.getCurrentUser();
       final String? savedToken = await _authRepository.getToken();
@@ -58,13 +58,22 @@ class AuthProvider extends ChangeNotifier {
         _user = currentUser;
         _token = savedToken;
         _status = AuthStatus.authenticated;
+        _syncToNative(currentUser, savedToken);
+
+        // Refresh in background without blocking UI
+        _authRepository.refreshUser().then((user) {
+          if (user != null) {
+            _user = user;
+            notifyListeners();
+          }
+        }).catchError((_) {});
       }
     } catch (_) {
       _user = null;
       _token = null;
       _status = AuthStatus.unauthenticated;
     } finally {
-      _setLoading(false);
+      notifyListeners();
     }
   }
 
@@ -86,6 +95,10 @@ class AuthProvider extends ChangeNotifier {
       _token = await _authRepository.getToken();
 
       _status = AuthStatus.authenticated;
+      if (_user != null && _token != null) {
+        _syncToNative(_user!, _token!);
+      }
+
       notifyListeners();
       return true;
     } catch (error) {
@@ -148,6 +161,11 @@ class AuthProvider extends ChangeNotifier {
 
     try {
       await _authRepository.logout();
+      await platform.invokeMethod('syncSession', {
+        'userId': null,
+        'username': null,
+        'token': null,
+      });
     } catch (_) {
       // Still logout locally even if something fails.
     } finally {
@@ -169,6 +187,9 @@ class AuthProvider extends ChangeNotifier {
       _token = await _authRepository.getToken();
 
       _status = AuthStatus.authenticated;
+      if (_user != null && _token != null) {
+        _syncToNative(_user!, _token!);
+      }
       notifyListeners();
       return true;
     } catch (error) {
@@ -190,6 +211,9 @@ class AuthProvider extends ChangeNotifier {
       _token = await _authRepository.getToken();
 
       _status = AuthStatus.authenticated;
+      if (_user != null && _token != null) {
+        _syncToNative(_user!, _token!);
+      }
       notifyListeners();
       return true;
     } catch (error) {
@@ -211,6 +235,9 @@ class AuthProvider extends ChangeNotifier {
       _token = await _authRepository.getToken();
 
       _status = AuthStatus.authenticated;
+      if (_user != null && _token != null) {
+        _syncToNative(_user!, _token!);
+      }
       notifyListeners();
       return true;
     } catch (error) {
@@ -231,7 +258,23 @@ class AuthProvider extends ChangeNotifier {
     _errorMessage = null;
   }
 
-  String _cleanError(Object error) {
-    return error.toString().replaceFirst('Exception: ', '');
+  String _cleanError(Object e) {
+    if (e.toString().contains('Invalid token')) {
+      return 'Session expired. Please login again.';
+    }
+
+    return e.toString().replaceAll('Exception: ', '');
+  }
+
+  Future<void> _syncToNative(UserModel user, String token) async {
+    try {
+      await platform.invokeMethod('syncSession', {
+        'userId': user.id,
+        'username': user.fullName,
+        'token': token,
+      });
+    } catch (e) {
+      debugPrint("Failed to sync session natively: $e");
+    }
   }
 }

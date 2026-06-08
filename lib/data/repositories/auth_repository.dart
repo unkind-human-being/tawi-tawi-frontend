@@ -85,6 +85,16 @@ class AuthRepository {
       return null;
     }
 
+    return await _secureStorageService.getUser();
+  }
+
+  Future<UserModel?> refreshUser() async {
+    final String? token = await _secureStorageService.getToken();
+
+    if (token == null || token.trim().isEmpty) {
+      return null;
+    }
+
     try {
       final Map<String, dynamic> response = await _authApiService.getMe(
         token: token,
@@ -93,15 +103,13 @@ class AuthRepository {
       final dynamic data = response['data'];
 
       if (data is! Map<String, dynamic>) {
-        final UserModel? savedUser = await _secureStorageService.getUser();
-        return savedUser;
+        return await _secureStorageService.getUser();
       }
 
       final dynamic userJson = data['user'];
 
       if (userJson is! Map<String, dynamic>) {
-        final UserModel? savedUser = await _secureStorageService.getUser();
-        return savedUser;
+        return await _secureStorageService.getUser();
       }
 
       final UserModel user = UserModel.fromJson(userJson);

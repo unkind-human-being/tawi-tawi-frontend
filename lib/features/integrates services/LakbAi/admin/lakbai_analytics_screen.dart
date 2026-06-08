@@ -1,7 +1,7 @@
 // frontend/lib/screens/analytics_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:lucide_icons/lucide_icons.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../providers/lakbai_admin_provider.dart';
 
 class LakbaiAnalyticsScreen extends StatefulWidget {

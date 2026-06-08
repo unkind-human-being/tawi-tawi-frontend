@@ -1,17 +1,15 @@
+// lib/features/home/home_screen.dart
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import '../auth/auth_provider.dart';
-import '../profile/profile_screen.dart';
-import '../integrates services/social_health/app service introduction/shu_introduction.dart';
 
-import '../integrates services/hanap_gawa/app service introduction/introduction_screen.dart'
-    as hanap_gawa_intro;
-
-// 1. --- CHANGED: Import the actual LakbAi Home Screen ---
+// Integrated Services Imports
 import '../integrates services/LakbAi/widgets/lakbai_main_layout.dart';
-/////
+import '../integrates services/social_health/app service introduction/shu_introduction.dart';
+import '../integrates services/team ubbama/team ubbama_login_screen.dart' as team_ubbama_intro;
 
+<<<<<<< HEAD
 import '../integrates services/TDLF-Educ/app service introduction/introduction_screen.dart'
     as tdlf_intro;
 import '../integrates services/team lodo/app service introduction/introduction_screen.dart'
@@ -38,17 +36,30 @@ enum _ServiceRoute {
   pameyaan, // Upgraded path definition
   teamUbbama,
 }
+=======
+// New Services Imports
+import '../integrates services/hanap_gawa/app service introduction/introduction_screen.dart' as hanap_gawa_intro;
+import '../integrates services/pameyaan/app service introduction/introduction_screen.dart' as pameyaan_intro;
+import '../integrates services/TDLF-Educ/app service introduction/introduction_screen.dart' as educ_intro;
+import '../integrates services/mesh_messaging/app service introduction/inbox_screen.dart';
+>>>>>>> c71801b64dd7ab66351b0b62210cd3c7b08f354c
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final ValueChanged<int>? onSwitchTab;
+
+  const HomeScreen({super.key, this.onSwitchTab});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _selectedTab = 0;
+  bool _isListView = false;
+  late final PageController _pageController;
+  Timer? _carouselTimer;
+  int _currentCarouselIndex = 0;
 
+<<<<<<< HEAD
   final List<_AppService> mainServices = const [
     _AppService(
       title: 'Health Updates',
@@ -196,29 +207,151 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => screen),
     );
+=======
+  final List<Map<String, String>> _carouselItems = [
+    {
+      'title': 'LakbAi',
+      'subtitle': 'AI Travel Assistant',
+      'image': 'assets/images/lakbai.webp',
+    },
+    {
+      'title': 'Social Health',
+      'subtitle': 'RHU Updates & QR',
+      'image': 'assets/images/rhu.webp',
+    },
+    {
+      'title': 'Hanap Gawa',
+      'subtitle': 'Local Job Portal',
+      'image': 'assets/images/at-carpenter-workshop.webp',
+    },
+    {
+      'title': 'Pameyaan',
+      'subtitle': 'Transport Services',
+      'image': 'assets/images/pameyaan.webp',
+    },
+    {
+      'title': 'Education',
+      'subtitle': 'Learning Platform',
+      'image': 'assets/images/educ.webp',
+    },
+    {
+      'title': 'Team Ubbama',
+      'subtitle': 'eCommerce',
+      'image': 'assets/images/e store.webp',
+    },
+    {
+      'title': 'Mesh Messaging',
+      'subtitle': 'Offline Communication',
+      'image': 'assets/images/mesh.webp',
+    },
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: 6000, viewportFraction: 0.93);
+    _startCarousel();
   }
 
-  void _onBottomTap(int index) {
-    if (index == 0) {
-      setState(() => _selectedTab = 0);
-      return;
+  void _startCarousel() {
+    _carouselTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (_pageController.hasClients) {
+        _pageController.nextPage(
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
+>>>>>>> c71801b64dd7ab66351b0b62210cd3c7b08f354c
+  }
+
+  void _navigateToService(BuildContext context, int index) {
+    switch (index) {
+      case 0:
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LakbaiMainLayout()));
+        break;
+      case 1:
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ShuIntroductionScreen()));
+        break;
+      case 2:
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const hanap_gawa_intro.HanapGawaIntroductionScreen()));
+        break;
+      case 3:
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const pameyaan_intro.TeamRasmanIntroductionScreen()));
+        break;
+      case 4:
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const educ_intro.TDLFEducIntroductionScreen()));
+        break;
+      case 5:
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const team_ubbama_intro.TeamUbbamaLoginScreen()));
+        break;
+      case 6:
+        if (widget.onSwitchTab != null) {
+          widget.onSwitchTab!(1);
+        } else {
+          Navigator.of(context).push(MaterialPageRoute(builder: (_) => const InboxScreen()));
+        }
+        break;
+    }
+  }
+
+  @override
+  void dispose() {
+    _carouselTimer?.cancel();
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  String _getFormattedDate() {
+    final DateTime now = DateTime.now();
+    final List<String> weekdays = [
+      'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
+    ];
+    final List<String> months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return '${weekdays[now.weekday - 1]}, ${months[now.month - 1]} ${now.day}';
+  }
+
+  // Helper function to extract initials from the full name
+  String _getInitials(String name) {
+    final List<String> parts = name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((String part) => part.trim().isNotEmpty)
+        .toList();
+
+    if (parts.isEmpty) {
+      return 'U';
     }
 
-    if (index == 4) {
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const ProfileScreen()),
-      );
-      return;
+    if (parts.length == 1) {
+      return parts.first.substring(0, 1).toUpperCase();
     }
 
-    final labels = ['Home', 'Scan', 'Digital ID', 'History', 'Account'];
-    _openPlaceholder(labels[index]);
+    return '${parts.first.substring(0, 1)}${parts.last.substring(0, 1)}'
+        .toUpperCase();
   }
 
   @override
   Widget build(BuildContext context) {
-    final user = context.watch<AuthProvider>().user;
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    // Core theme colors adapted for light and dark modes
+    final Color bgColor = isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
+    final Color textDark = isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A);
+    final Color textMuted = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    
+    // Top bar is now ALWAYS the primary green, even in dark mode
+    const Color topBarColor = Color(0xFF0F766E);
 
+    final user = context.watch<AuthProvider>().user;
+    final userName = user?.fullName ?? 'Citizen';
+    final firstName = userName.trim().isEmpty ? 'Citizen' : userName.trim().split(' ').first;
+    final String initials = _getInitials(userName);
+
+<<<<<<< HEAD
     return Scaffold(
       backgroundColor: _pageBg,
       body: LayoutBuilder(
@@ -387,458 +520,428 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
+=======
+    // The updated list of services with corrected categories and icons
+    final List<Widget> serviceItems = [
+      _buildServiceItem(
+        title: 'LakbAi',
+        subtitle: 'AI Travel Assistant',
+        icon: Icons.travel_explore_rounded,
+        color: const Color(0xFFF59E0B),
+        isDark: isDark,
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const LakbaiMainLayout()),
+>>>>>>> c71801b64dd7ab66351b0b62210cd3c7b08f354c
           );
         },
       ),
-    );
-  }
-}
-
-class _HeaderSection extends StatelessWidget {
-  final String userName;
-
-  const _HeaderSection({
-    required this.userName,
-  });
-
-  String _firstName(String name) {
-    final clean = name.trim();
-    if (clean.isEmpty) return 'User';
-    return clean.split(' ').first;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final firstName = _firstName(userName);
-
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 52, 20, 22),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [_darkGreen, _mainGreen],
-        ),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(34),
-          bottomRight: Radius.circular(34),
-        ),
+      _buildServiceItem(
+        title: 'Social Health',
+        subtitle: 'RHU Updates & QR',
+        icon: Icons.health_and_safety_rounded,
+        color: const Color(0xFF0EA5E9),
+        isDark: isDark,
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const ShuIntroductionScreen()),
+          );
+        },
       ),
-      child: Column(
-        children: [
-          Row(
+      _buildServiceItem(
+        title: 'Hanap Gawa',
+        subtitle: 'Local Job Portal',
+        icon: Icons.work_rounded,
+        color: const Color(0xFF8B5CF6), // Purple
+        isDark: isDark,
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const hanap_gawa_intro.HanapGawaIntroductionScreen()),
+          );
+        },
+      ),
+      _buildServiceItem(
+        title: 'Pameyaan',
+        subtitle: 'Transport Services',
+        icon: Icons.directions_car_rounded, // Transportation Icon
+        color: const Color(0xFFF97316), // Orange
+        isDark: isDark,
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const pameyaan_intro.TeamRasmanIntroductionScreen()),
+          );
+        },
+      ),
+      _buildServiceItem(
+        title: 'Education',
+        subtitle: 'Learning Platform',
+        icon: Icons.school_rounded,
+        color: const Color(0xFF3B82F6), // Blue
+        isDark: isDark,
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const educ_intro.TDLFEducIntroductionScreen()),
+          );
+        },
+      ),
+      _buildServiceItem(
+        title: 'Team Ubbama',
+        subtitle: 'Local Stores',
+        icon: Icons.storefront_rounded, // Store Icon
+        color: const Color(0xFFEF4444), // Red
+        isDark: isDark,
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const team_ubbama_intro.TeamUbbamaLoginScreen()),
+          );
+        },
+      ),
+    ];
+
+    return Scaffold(
+      backgroundColor: bgColor,
+      appBar: AppBar(
+        centerTitle: false, // Forces the title content to align to the left
+        backgroundColor: topBarColor,
+        toolbarHeight: 90, 
+        elevation: 8,
+        shadowColor: isDark 
+            ? Colors.black.withValues(alpha: 0.5) 
+            : const Color(0xFF0F766E).withValues(alpha: 0.4),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            bottom: Radius.circular(32),
+          ),
+        ),
+        titleSpacing: 24, 
+        title: Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 54,
-                height: 54,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.24),
-                  ),
+              Text(
+                _getFormattedDate(),
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.8),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
                 ),
-                child: const Icon(
-                  Icons.waves_rounded,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Hi, $firstName',
+                style: const TextStyle(
                   color: Colors.white,
-                  size: 32,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Mabuhay, $firstName',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 23,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      'Welcome to Tawi-Tawi App',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.82),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              CircleAvatar(
-                radius: 24,
-                backgroundColor: Colors.white,
-                child: Text(
-                  firstName.substring(0, 1).toUpperCase(),
-                  style: const TextStyle(
-                    color: _darkGreen,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 20,
-                  ),
+                  fontSize: 26,
+                  fontWeight: FontWeight.w900,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Icon(
-                Icons.nightlight_round,
-                color: Colors.white.withValues(alpha: 0.92),
+        ),
+        actions: [
+          Container(
+            margin: const EdgeInsets.only(right: 24, top: 12),
+            width: 52,
+            height: 52,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.3),
+                width: 2,
               ),
-              const Spacer(),
-              Text(
-                _formattedDate(),
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.92),
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                ),
+            ),
+            child: Text(
+              initials,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.0,
               ),
-            ],
+            ),
+          ),
+        ],
+      ),
+      body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 24, bottom: 24),
+              child: _buildHeroBanner(isDark),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+            sliver: SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Integrated Services',
+                        style: TextStyle(
+                          color: textDark,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                          ),
+                        ),
+                        child: IconButton(
+                          icon: Icon(
+                            _isListView ? Icons.grid_view_rounded : Icons.view_list_rounded,
+                            color: textMuted,
+                            size: 22,
+                          ),
+                          tooltip: _isListView ? 'Switch to Grid View' : 'Switch to List View',
+                          onPressed: () {
+                            setState(() {
+                              _isListView = !_isListView;
+                            });
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            sliver: _isListView
+                ? SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: serviceItems[index],
+                      ),
+                      childCount: serviceItems.length,
+                    ),
+                  )
+                : SliverGrid(
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      childAspectRatio: 0.95,
+                    ),
+                    delegate: SliverChildListDelegate(serviceItems),
+                  ),
+          ),
+          const SliverToBoxAdapter(
+            child: SizedBox(height: 40),
           ),
         ],
       ),
     );
   }
 
-  String _formattedDate() {
-    final now = DateTime.now();
-
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-
-    const days = [
-      'Mon',
-      'Tue',
-      'Wed',
-      'Thu',
-      'Fri',
-      'Sat',
-      'Sun',
-    ];
-
-    return '${days[now.weekday - 1]} · ${months[now.month - 1]} ${now.day}, ${now.year}';
-  }
-}
-
-class _SearchBox extends StatelessWidget {
-  final VoidCallback onTap;
-
-  const _SearchBox({
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Transform.translate(
-      offset: const Offset(0, -18),
-      child: Material(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        elevation: 6,
-        shadowColor: Colors.black.withValues(alpha: 0.08),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(22),
-          child: Container(
-            height: 64,
-            padding: const EdgeInsets.symmetric(horizontal: 18),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(
-                color: const Color(0xFFE5E7EB),
+  Widget _buildHeroBanner(bool isDark) {
+    return SizedBox(
+      height: 200,
+      child: PageView.builder(
+        controller: _pageController,
+        onPageChanged: (index) {
+          setState(() {
+            _currentCarouselIndex = index;
+          });
+        },
+        itemBuilder: (context, index) {
+          final int actualIndex = index % _carouselItems.length;
+          final item = _carouselItems[actualIndex];
+          return GestureDetector(
+            onTap: () => _navigateToService(context, actualIndex),
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 8),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(28),
+              image: DecorationImage(
+                image: AssetImage(item['image']!),
+                fit: BoxFit.cover,
+                colorFilter: ColorFilter.mode(
+                  Colors.black.withValues(alpha: 0.5),
+                  BlendMode.darken,
+                ),
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.2),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
+                ),
+              ],
             ),
-            child: Row(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Expanded(
-                  child: Text(
-                    'Search apps like health, jobs, travel, education',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: const Text(
+                    'PUBLIC PORTAL',
                     style: TextStyle(
-                      color: Color(0xFF9CA3AF),
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                      fontSize: 10,
+                      letterSpacing: 1.0,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: _softGreen,
-                    borderRadius: BorderRadius.circular(14),
+                const Spacer(),
+                Text(
+                  item['title']!,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 26,
+                    height: 1.2,
+                    fontWeight: FontWeight.w900,
                   ),
-                  child: const Icon(
-                    Icons.search_rounded,
-                    color: _mainGreen,
-                    size: 28,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  item['subtitle']!,
+                  style: const TextStyle(
+                    color: Color(0xFFCCFBF1),
+                    fontSize: 14,
+                    height: 1.2,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
             ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _QuickCategoriesRow extends StatelessWidget {
-  final List<_QuickCategory> categories;
-  final ValueChanged<_ServiceRoute> onTap;
-
-  const _QuickCategoriesRow({
-    required this.categories,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 104,
-      child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        scrollDirection: Axis.horizontal,
-        itemCount: categories.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 18),
-        itemBuilder: (context, index) {
-          final category = categories[index];
-
-          return InkWell(
-            onTap: () => onTap(category.route),
-            borderRadius: BorderRadius.circular(50),
-            child: SizedBox(
-              width: 72,
-              child: Column(
-                children: [
-                  Container(
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEFF6FF),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: const Color(0xFFDCEAFE),
-                      ),
-                    ),
-                    child: Icon(
-                      category.icon,
-                      color: _blueAccent,
-                      size: 30,
-                    ),
-                  ),
-                  const SizedBox(height: 9),
-                  Text(
-                    category.title,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Color(0xFF4B5563),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
+          ));
         },
       ),
     );
   }
-}
 
-class _PromoBanner extends StatelessWidget {
-  final VoidCallback onTap;
-
-  const _PromoBanner({
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
-      child: InkWell(
+  Widget _buildServiceItem({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+    required bool isDark,
+    required VoidCallback onTap,
+  }) {
+    if (_isListView) {
+      return _ServiceListCard(
+        title: title,
+        subtitle: subtitle,
+        icon: icon,
+        color: color,
+        isDark: isDark,
         onTap: onTap,
-        borderRadius: BorderRadius.circular(26),
-        child: Container(
-          height: 165,
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(26),
-            gradient: const LinearGradient(
-              colors: [
-                Color(0xFFDCFCE7),
-                Color(0xFFECFDF5),
-              ],
-            ),
-            border: Border.all(
-              color: const Color(0xFFBBF7D0),
-            ),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(50),
-                      ),
-                      child: const Text(
-                        'ONE DIGITAL HUB',
-                        style: TextStyle(
-                          color: Color(0xFF15803D),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    const Text(
-                      'Tawi-Tawi\nService Portal',
-                      style: TextStyle(
-                        color: _darkGreen,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w900,
-                        height: 1.05,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Access health updates and future local services.',
-                      style: TextStyle(
-                        color: Color(0xFF4B5563),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                width: 92,
-                height: 92,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                ),
-                padding: const EdgeInsets.all(12),
-                child: Image.asset(
-                  'assets/logo/shu/logo.png',
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) {
-                    return const Icon(
-                      Icons.health_and_safety_rounded,
-                      color: _mainGreen,
-                      size: 48,
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+      );
+    } else {
+      return _ServiceGridCard(
+        title: title,
+        subtitle: subtitle,
+        icon: icon,
+        color: color,
+        isDark: isDark,
+        onTap: onTap,
+      );
+    }
   }
 }
 
-class _FeatureCard extends StatelessWidget {
+class _ServiceGridCard extends StatelessWidget {
   final String title;
   final String subtitle;
   final IconData icon;
-  final Color backgroundColor;
-  final Color iconColor;
+  final Color color;
+  final bool isDark;
   final VoidCallback onTap;
 
-  const _FeatureCard({
+  const _ServiceGridCard({
     required this.title,
     required this.subtitle,
     required this.icon,
-    required this.backgroundColor,
-    required this.iconColor,
+    required this.color,
+    required this.isDark,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final Color cardColor = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final Color borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final Color textColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    final Color subtextColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+
     return Material(
-      color: backgroundColor,
-      borderRadius: BorderRadius.circular(22),
+      color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(22),
-        child: Container(
-          height: 136,
-          padding: const EdgeInsets.all(18),
+        borderRadius: BorderRadius.circular(24),
+        child: Ink(
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(
-              color: Colors.white,
-            ),
+            color: cardColor,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: borderColor),
+            boxShadow: isDark
+                ? []
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 15,
+                      offset: const Offset(0, 8),
+                    )
+                  ],
           ),
-          child: Stack(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Positioned(
-                right: 0,
-                bottom: 0,
-                child: Icon(
-                  icon,
-                  color: iconColor.withValues(alpha: 0.8),
-                  size: 46,
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(icon, color: color, size: 26),
+              ),
+              const Spacer(),
+              Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
                 ),
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: Color(0xFF1F2937),
-                      fontSize: 19,
-                      fontWeight: FontWeight.w900,
-                      height: 1.05,
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      color: Color(0xFF6B7280),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: subtextColor,
+                  fontSize: 12,
+                  height: 1.3,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),
@@ -848,225 +951,95 @@ class _FeatureCard extends StatelessWidget {
   }
 }
 
-class _ServiceTabs extends StatelessWidget {
-  final int selectedTab;
-  final ValueChanged<int> onChanged;
-
-  const _ServiceTabs({
-    required this.selectedTab,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: _TabButton(
-                title: 'Local Apps',
-                isSelected: selectedTab == 0,
-                onTap: () => onChanged(0),
-              ),
-            ),
-            Expanded(
-              child: _TabButton(
-                title: 'Community',
-                isSelected: selectedTab == 1,
-                onTap: () => onChanged(1),
-              ),
-            ),
-          ],
-        ),
-        Container(
-          height: 3,
-          color: const Color(0xFFE5E7EB),
-          child: Row(
-            children: [
-              Expanded(
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 220),
-                  color: selectedTab == 0 ? _blueAccent : Colors.transparent,
-                ),
-              ),
-              Expanded(
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 220),
-                  color: selectedTab == 1 ? _blueAccent : Colors.transparent,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _TabButton extends StatelessWidget {
+class _ServiceListCard extends StatelessWidget {
   final String title;
-  final bool isSelected;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final bool isDark;
   final VoidCallback onTap;
 
-  const _TabButton({
+  const _ServiceListCard({
     required this.title,
-    required this.isSelected,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.isDark,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 14),
-        child: Text(
-          title,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: isSelected ? _blueAccent : const Color(0xFF6B7280),
-            fontSize: 16,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ServiceTile extends StatelessWidget {
-  final _AppService service;
-  final VoidCallback onTap;
-
-  const _ServiceTile({
-    required this.service,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final bool isLive = service.statusLabel.toLowerCase() == 'live';
+    final Color cardColor = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final Color borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final Color textColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    final Color subtextColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
 
     return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(22),
+      color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(22),
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 104),
-          padding: const EdgeInsets.all(16),
+        borderRadius: BorderRadius.circular(20),
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(
-              color: const Color(0xFFE5E7EB),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
-              ),
-            ],
+            color: cardColor,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: borderColor),
+            boxShadow: isDark
+                ? []
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 15,
+                      offset: const Offset(0, 8),
+                    )
+                  ],
           ),
           child: Row(
             children: [
               Container(
-                width: 64,
-                height: 64,
-                padding: EdgeInsets.all(service.imageAsset == null ? 0 : 8),
+                width: 52,
+                height: 52,
                 decoration: BoxDecoration(
-                  color: service.imageAsset == null ? service.color : Colors.white,
-                  shape: BoxShape.circle,
-                  border: service.imageAsset == null
-                      ? null
-                      : Border.all(
-                          color: const Color(0xFFE5E7EB),
-                        ),
+                  color: color.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                child: service.imageAsset == null
-                    ? Icon(
-                        service.icon,
-                        color: service.iconColor,
-                        size: 31,
-                      )
-                    : Image.asset(
-                        service.imageAsset!,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Icon(
-                            service.icon,
-                            color: service.iconColor,
-                            size: 31,
-                          );
-                        },
-                      ),
+                child: Icon(icon, color: color, size: 28),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            service.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Color(0xFF1F2937),
-                              fontSize: 18,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isLive
-                                ? const Color(0xFFDCFCE7)
-                                : const Color(0xFFF3F4F6),
-                            borderRadius: BorderRadius.circular(50),
-                          ),
-                          child: Text(
-                            service.statusLabel,
-                            style: TextStyle(
-                              color: isLive
-                                  ? const Color(0xFF15803D)
-                                  : const Color(0xFF6B7280),
-                              fontSize: 10,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 5),
                     Text(
-                      service.subtitle,
-                      maxLines: 2,
+                      title,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Color(0xFF6B7280),
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: subtextColor,
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        height: 1.25,
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              const Icon(
+              Icon(
                 Icons.chevron_right_rounded,
-                color: Color(0xFF9CA3AF),
+                color: isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1),
+                size: 28,
               ),
             ],
           ),
@@ -1074,186 +1047,4 @@ class _ServiceTile extends StatelessWidget {
       ),
     );
   }
-}
-
-class _BottomNavBar extends StatelessWidget {
-  final int selectedIndex;
-  final ValueChanged<int> onTap;
-
-  const _BottomNavBar({
-    required this.selectedIndex,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 92,
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.98),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 24,
-            offset: const Offset(0, -10),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          _NavItem(
-            label: 'Home',
-            icon: Icons.home_rounded,
-            active: selectedIndex == 0,
-            onTap: () => onTap(0),
-          ),
-          _NavItem(
-            label: 'Scan',
-            icon: Icons.qr_code_scanner_rounded,
-            active: selectedIndex == 1,
-            onTap: () => onTap(1),
-          ),
-          Expanded(
-            child: GestureDetector(
-              onTap: () => onTap(2),
-              child: Column(
-                children: [
-                  Transform.translate(
-                    offset: const Offset(0, -24),
-                    child: Container(
-                      width: 78,
-                      height: 78,
-                      decoration: BoxDecoration(
-                        color: _blueAccent,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Colors.white,
-                          width: 6,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: _blueAccent.withValues(alpha: 0.3),
-                            blurRadius: 20,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.badge_rounded,
-                        color: Colors.white,
-                        size: 34,
-                      ),
-                    ),
-                  ),
-                  Transform.translate(
-                    offset: const Offset(0, -28),
-                    child: const Text(
-                      'Digital ID',
-                      style: TextStyle(
-                        color: Color(0xFF1F2937),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          _NavItem(
-            label: 'History',
-            icon: Icons.receipt_long_rounded,
-            active: selectedIndex == 3,
-            onTap: () => onTap(3),
-          ),
-          _NavItem(
-            label: 'Account',
-            icon: Icons.grid_view_rounded,
-            active: selectedIndex == 4,
-            onTap: () => onTap(4),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _NavItem extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final bool active;
-  final VoidCallback onTap;
-
-  const _NavItem({
-    required this.label,
-    required this.icon,
-    required this.active,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final color = active ? _blueAccent : const Color(0xFF2F2F2F);
-
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              color: color,
-              size: 27,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontSize: 12,
-                fontWeight: active ? FontWeight.w900 : FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _AppService {
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final String? imageAsset;
-  final Color color;
-  final Color iconColor;
-  final String statusLabel;
-  final _ServiceRoute route;
-
-  const _AppService({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    this.imageAsset,
-    required this.color,
-    required this.iconColor,
-    required this.statusLabel,
-    required this.route,
-  });
-}
-
-class _QuickCategory {
-  final String title;
-  final IconData icon;
-  final _ServiceRoute route;
-
-  const _QuickCategory({
-    required this.title,
-    required this.icon,
-    required this.route,
-  });
 }
