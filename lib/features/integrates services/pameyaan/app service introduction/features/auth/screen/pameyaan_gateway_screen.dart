@@ -11,6 +11,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../commuter/screens/commuter_app_screen.dart';
 import '../../driver/screens/driver_dashboard_screen.dart'; 
+import 'role_selection_screen.dart'; // Added in case you want to route unregistered users here later
 
 class PameyaanGatewayScreen extends StatefulWidget {
   final bool isDriver; 
@@ -64,6 +65,7 @@ class _PameyaanGatewayScreenState extends State<PameyaanGatewayScreen> {
               verifyServiceAccess(serviceName: \$serviceName) {
                 hasAccess
                 requiresRegistration
+                role # <-- ADDED: Requesting the user's role from the backend
               }
             }
           ''',
@@ -84,17 +86,22 @@ class _PameyaanGatewayScreenState extends State<PameyaanGatewayScreen> {
       final accessData = verifyData['data']['verifyServiceAccess'];
       bool isLinked = accessData['hasAccess'] ?? false;
       bool requiresRegistration = accessData['requiresRegistration'] ?? false;
+      String? userRole = accessData['role']; // Will be 'commuter' or 'driver'
 
-      // SCENARIO A: Account Exists
+      // SCENARIO A: Account Exists (Check Commuter vs Driver)
       if (isLinked) {
         ApiClient.instance.options.headers['Authorization'] = 'Bearer $mainToken';
         
-        // FIXED: Removed redundant null check and passed email
-        _routeUserToDashboard(mainUser.fullName, mainUser.id, mainUser.email);
+        // DYNAMIC ROUTING: Route based on their actual database role
+        if (userRole == 'driver' || (userRole == null && widget.isDriver)) {
+          _routeToDriver(mainUser.fullName, mainUser.id);
+        } else {
+          // Defaults to Commuter if role is 'commuter' or null
+          _routeToCommuter(mainUser.fullName, mainUser.id, mainUser.email);
+        }
         return;
       }
-
-      // SCENARIO B: First-time User (Auto-Create Account)
+ 
       if (requiresRegistration) {
         setState(() => _statusMessage = 'Setting up your transport profile...');
         
@@ -133,8 +140,11 @@ class _PameyaanGatewayScreenState extends State<PameyaanGatewayScreen> {
         if (regAccessData['hasAccess'] == true && mounted) {
           ApiClient.instance.options.headers['Authorization'] = 'Bearer $mainToken';
           
-          // FIXED: Removed redundant null check and passed email
-          _routeUserToDashboard(mainUser.fullName, mainUser.id, mainUser.email);
+          if (widget.isDriver) {
+            _routeToDriver(mainUser.fullName, mainUser.id);
+          } else {
+            _routeToCommuter(mainUser.fullName, mainUser.id, mainUser.email);
+          }
         } else {
           throw Exception('Auto-provisioning failed.');
         }
@@ -147,32 +157,34 @@ class _PameyaanGatewayScreenState extends State<PameyaanGatewayScreen> {
     }
   }
 
-  // FIXED: Added email parameter
-  void _routeUserToDashboard(String name, String userId, String email) {
-    if (widget.isDriver) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => DriverDashboardScreen(
-            driverName: name,
-            initials: name.isNotEmpty ? name[0].toUpperCase() : 'D',
-            franchiseNumber: userId, 
-          ),
+  void _routeToDriver(String? name, String userId) {
+    final safeName = name ?? 'Driver'; // Fallback if name is missing
+    
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DriverDashboardScreen(
+          driverName: safeName,
+          initials: safeName.isNotEmpty ? safeName[0].toUpperCase() : 'D',
+          franchiseNumber: userId, 
         ),
-      );
-    } else {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => CommuterAppScreen(
-            fullName: name,
-            initials: name.isNotEmpty ? name[0].toUpperCase() : 'C',
-            discountStatus: 'Regular', 
-            email: email, // FIXED: Passed the required email argument
-          ),
+      ),
+    );
+  }
+  void _routeToCommuter(String? name, String userId, String? email) {
+    final safeName = name ?? 'Citizen'; // Fallback if name is missing
+    
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CommuterAppScreen(
+          fullName: safeName,
+          initials: safeName.isNotEmpty ? safeName[0].toUpperCase() : 'C',
+          discountStatus: 'Regular', 
+          email: email ?? 'no-email@provided.com', // Safe Fallback!
         ),
-      );
-    }
+      ),
+    );
   }
 
   @override

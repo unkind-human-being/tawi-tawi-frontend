@@ -7,13 +7,24 @@ import '../auth/auth_provider.dart';
 // Integrated Services Imports
 import '../integrates services/LakbAi/widgets/lakbai_main_layout.dart';
 import '../integrates services/social_health/app service introduction/shu_introduction.dart';
-import '../integrates services/team ubbama/team ubbama_login_screen.dart' as team_ubbama_intro;
-
-// New Services Imports
 import '../integrates services/hanap_gawa/app service introduction/introduction_screen.dart' as hanap_gawa_intro;
-import '../integrates services/pameyaan/app service introduction/introduction_screen.dart' as pameyaan_intro;
 import '../integrates services/TDLF-Educ/app service introduction/introduction_screen.dart' as educ_intro;
+import '../integrates services/team ubbama/team ubbama_login_screen.dart' as team_ubbama_login;
 import '../integrates services/mesh_messaging/app service introduction/inbox_screen.dart';
+
+
+
+// Pameyaan Subsystem Core Imports
+import '../integrates services/pameyaan/app service introduction/core/network/network_provider.dart';
+// ADDED: Missing Gateway Screen Import
+import '../integrates services/pameyaan/app service introduction/features/auth/screen/pameyaan_gateway_screen.dart';
+
+const Color _darkGreen = Color(0xFF064E3B);
+const Color _mainGreen = Color(0xFF0F766E);
+const Color _softGreen = Color(0xFFEFFAF5);
+const Color _blueAccent = Color(0xFF0B5ED7);
+const Color _pageBg = Color(0xFFF8FAF9);
+
 
 class HomeScreen extends StatefulWidget {
   final ValueChanged<int>? onSwitchTab;
@@ -98,13 +109,22 @@ class _HomeScreenState extends State<HomeScreen> {
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const hanap_gawa_intro.HanapGawaIntroductionScreen()));
         break;
       case 3:
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const pameyaan_intro.TeamRasmanIntroductionScreen()));
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => MultiProvider(
+              providers: [
+                ChangeNotifierProvider(create: (_) => NetworkProvider()),
+              ],
+              child: const PameyaanGatewayScreen(),
+            ),
+          ),
+        );
         break;
       case 4:
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const educ_intro.TDLFEducIntroductionScreen()));
         break;
       case 5:
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const team_ubbama_intro.TeamUbbamaLoginScreen()));
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const team_ubbama_login.TeamUbbamaLoginScreen()));
         break;
       case 6:
         if (widget.onSwitchTab != null) {
@@ -125,17 +145,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String _getFormattedDate() {
     final DateTime now = DateTime.now();
-    final List<String> weekdays = [
-      'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
-    ];
-    final List<String> months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ];
+    final List<String> weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    final List<String> months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     return '${weekdays[now.weekday - 1]}, ${months[now.month - 1]} ${now.day}';
   }
 
-  // Helper function to extract initials from the full name
   String _getInitials(String name) {
     final List<String> parts = name
         .trim()
@@ -143,28 +157,17 @@ class _HomeScreenState extends State<HomeScreen> {
         .where((String part) => part.trim().isNotEmpty)
         .toList();
 
-    if (parts.isEmpty) {
-      return 'U';
-    }
-
-    if (parts.length == 1) {
-      return parts.first.substring(0, 1).toUpperCase();
-    }
-
-    return '${parts.first.substring(0, 1)}${parts.last.substring(0, 1)}'
-        .toUpperCase();
+    if (parts.isEmpty) return 'U';
+    if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
+    return '${parts.first.substring(0, 1)}${parts.last.substring(0, 1)}'.toUpperCase();
   }
 
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    // Core theme colors adapted for light and dark modes
     final Color bgColor = isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
     final Color textDark = isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A);
     final Color textMuted = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
-    
-    // Top bar is now ALWAYS the primary green, even in dark mode
     const Color topBarColor = Color(0xFF0F766E);
 
     final user = context.watch<AuthProvider>().user;
@@ -172,19 +175,15 @@ class _HomeScreenState extends State<HomeScreen> {
     final firstName = userName.trim().isEmpty ? 'Citizen' : userName.trim().split(' ').first;
     final String initials = _getInitials(userName);
 
-    // The updated list of services with corrected categories and icons
+
     final List<Widget> serviceItems = [
-      _buildServiceItem(
+     _buildServiceItem(
         title: 'LakbAi',
         subtitle: 'AI Travel Assistant',
         icon: Icons.travel_explore_rounded,
         color: const Color(0xFFF59E0B),
         isDark: isDark,
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const LakbaiMainLayout()),
-          );
-        },
+        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LakbaiMainLayout())), 
       ),
       _buildServiceItem(
         title: 'Social Health',
@@ -192,78 +191,66 @@ class _HomeScreenState extends State<HomeScreen> {
         icon: Icons.health_and_safety_rounded,
         color: const Color(0xFF0EA5E9),
         isDark: isDark,
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const ShuIntroductionScreen()),
-          );
-        },
+        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ShuIntroductionScreen())),
       ),
       _buildServiceItem(
         title: 'Hanap Gawa',
         subtitle: 'Local Job Portal',
         icon: Icons.work_rounded,
-        color: const Color(0xFF8B5CF6), // Purple
+        color: const Color(0xFF8B5CF6),
         isDark: isDark,
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const hanap_gawa_intro.HanapGawaIntroductionScreen()),
-          );
-        },
+        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const hanap_gawa_intro.HanapGawaIntroductionScreen())),
       ),
       _buildServiceItem(
         title: 'Pameyaan',
         subtitle: 'Transport Services',
-        icon: Icons.directions_car_rounded, // Transportation Icon
-        color: const Color(0xFFF97316), // Orange
+        icon: Icons.electric_rickshaw_rounded, // Changed to a tricycle/tuk-tuk style
+        color: const Color(0xFFF97316),
         isDark: isDark,
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const pameyaan_intro.TeamRasmanIntroductionScreen()),
-          );
-        },
+        onTap: () => Navigator.of(context).push(
+          // FIXED: Wrap Gateway with NetworkProvider directly inline to launch handshake
+          MaterialPageRoute(
+            builder: (_) => MultiProvider(
+              providers: [
+                ChangeNotifierProvider(create: (_) => NetworkProvider()),
+              ],
+              child: const PameyaanGatewayScreen(),
+            ),
+          ),
+        ),
       ),
       _buildServiceItem(
         title: 'Education',
         subtitle: 'Learning Platform',
         icon: Icons.school_rounded,
-        color: const Color(0xFF3B82F6), // Blue
+        color: const Color(0xFF3B82F6),
         isDark: isDark,
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const educ_intro.TDLFEducIntroductionScreen()),
-          );
-        },
+        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const educ_intro.TDLFEducIntroductionScreen())),
       ),
       _buildServiceItem(
         title: 'Team Ubbama',
         subtitle: 'Local Stores',
-        icon: Icons.storefront_rounded, // Store Icon
-        color: const Color(0xFFEF4444), // Red
+        icon: Icons.storefront_rounded,
+        color: const Color(0xFFEF4444),
         isDark: isDark,
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const team_ubbama_intro.TeamUbbamaLoginScreen()),
-          );
-        },
+        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const team_ubbama_login.TeamUbbamaLoginScreen())),
       ),
     ];
 
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
-        centerTitle: false, // Forces the title content to align to the left
+        centerTitle: false,
         backgroundColor: topBarColor,
-        toolbarHeight: 90, 
+        toolbarHeight: 90,
         elevation: 8,
-        shadowColor: isDark 
-            ? Colors.black.withValues(alpha: 0.5) 
+        shadowColor: isDark
+            ? Colors.black.withValues(alpha: 0.5)
             : const Color(0xFF0F766E).withValues(alpha: 0.4),
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(
-            bottom: Radius.circular(32),
-          ),
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
         ),
-        titleSpacing: 24, 
+        titleSpacing: 24,
         title: Padding(
           padding: const EdgeInsets.only(top: 12),
           child: Column(
@@ -419,65 +406,66 @@ class _HomeScreenState extends State<HomeScreen> {
               margin: const EdgeInsets.symmetric(horizontal: 8),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(28),
-              image: DecorationImage(
-                image: AssetImage(item['image']!),
-                fit: BoxFit.cover,
-                colorFilter: ColorFilter.mode(
-                  Colors.black.withValues(alpha: 0.5),
-                  BlendMode.darken,
-                ),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.2),
-                  blurRadius: 10,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(999),
+                image: DecorationImage(
+                  image: AssetImage(item['image']!),
+                  fit: BoxFit.cover,
+                  colorFilter: ColorFilter.mode(
+                    Colors.black.withValues(alpha: 0.5),
+                    BlendMode.darken,
                   ),
-                  child: const Text(
-                    'PUBLIC PORTAL',
-                    style: TextStyle(
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.2),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: const Text(
+                      'PUBLIC PORTAL',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        letterSpacing: 1.0,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    item['title']!,
+                    style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 10,
-                      letterSpacing: 1.0,
+                      fontSize: 26,
+                      height: 1.2,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
-                ),
-                const Spacer(),
-                Text(
-                  item['title']!,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 26,
-                    height: 1.2,
-                    fontWeight: FontWeight.w900,
+                  const SizedBox(height: 4),
+                  Text(
+                    item['subtitle']!,
+                    style: const TextStyle(
+                      color: Color(0xFFCCFBF1),
+                      fontSize: 14,
+                      height: 1.2,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  item['subtitle']!,
-                  style: const TextStyle(
-                    color: Color(0xFFCCFBF1),
-                    fontSize: 14,
-                    height: 1.2,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ));
+          );
         },
       ),
     );

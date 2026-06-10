@@ -18,6 +18,10 @@ import 'features/integrates services/LakbAi/providers/lakbai_itinerary_provider.
 
 // --- MAIN APP AUTH & SERVICES ---
 import 'features/integrates services/social_health/auth/social_health_auth_provider.dart';
+<<<<<<< HEAD
+=======
+
+>>>>>>> 1eba030 (Update home screen and gateway integration)
 
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
@@ -89,25 +93,21 @@ Future<void> main() async {
 
   final authProvider = AuthProvider(authRepository);
   await authProvider.initialize();
-
-  runApp(
+runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(
-          create: (_) => ThemeProvider(),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => SocialHealthAuthProvider(),
-        ),
-        ChangeNotifierProvider.value(
-          value: authProvider,
-        ),
-
-          // ADD THESE LINES inside your MultiProvider's list:
-      ChangeNotifierProvider(create: (_) => LakbaiAuthProvider()),
-      ChangeNotifierProvider(create: (_) => LakbaiDestinationsProvider()),
-      ChangeNotifierProvider(create: (_) => LakbaiItineraryProvider()),
-      ChangeNotifierProvider(create: (_) => LakbaiAdminProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => SocialHealthAuthProvider()),
+        ChangeNotifierProvider.value(value: authProvider),
+        
+        // LakbAi Providers
+        ChangeNotifierProvider(create: (_) => LakbaiAuthProvider()),
+        ChangeNotifierProvider(create: (_) => LakbaiDestinationsProvider()),
+        ChangeNotifierProvider(create: (_) => LakbaiItineraryProvider()),
+        ChangeNotifierProvider(create: (_) => LakbaiAdminProvider()),
+        
+        // Pameyaan Network Provider
+        ChangeNotifierProvider(create: (_) => NetworkProvider()),
       ],
       child: const TawiTawiApp(),
     ),
