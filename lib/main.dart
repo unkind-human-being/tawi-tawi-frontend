@@ -18,10 +18,6 @@ import 'features/integrates services/LakbAi/providers/lakbai_itinerary_provider.
 
 // --- MAIN APP AUTH & SERVICES ---
 import 'features/integrates services/social_health/auth/social_health_auth_provider.dart';
-<<<<<<< HEAD
-=======
-
->>>>>>> 1eba030 (Update home screen and gateway integration)
 
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
