@@ -95,6 +95,7 @@ class _VendorProfileScreenState extends ConsumerState<VendorProfileScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FB),
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         iconTheme: const IconThemeData(color: Colors.black),
         title: const Text("Store Identity", style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
         centerTitle: true,

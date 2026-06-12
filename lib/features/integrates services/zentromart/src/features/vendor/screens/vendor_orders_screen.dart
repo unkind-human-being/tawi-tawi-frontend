@@ -15,6 +15,7 @@ class VendorOrdersScreen extends ConsumerWidget {
       child: Scaffold(
         backgroundColor: const Color(0xFFF8F9FB),
         appBar: AppBar(
+          automaticallyImplyLeading: false,
           iconTheme: const IconThemeData(color: Colors.black),
           title: const Text("Manage Orders", style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 18)),
           centerTitle: true,

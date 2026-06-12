@@ -12,11 +12,13 @@ class OrdersScreen extends ConsumerWidget {
     return DefaultTabController(
       length: 4,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8F9FB),
-        appBar: AppBar(iconTheme: const IconThemeData(color: Colors.black), 
+        backgroundColor: const Color(0xFFF5F7FA),
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          iconTheme: const IconThemeData(color: Colors.black), 
           title: const Text(
-            "My Orders",
-            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black, fontSize: 18),
+            "My Purchases",
+            style: TextStyle(fontWeight: FontWeight.w800, color: Colors.black87, fontSize: 18),
           ),
           backgroundColor: Colors.white,
           elevation: 0,
@@ -59,7 +61,7 @@ class OrdersScreen extends ConsumerWidget {
           error: (e, _) => Center(
             child: Text(
               "Error loading orders: $e",
-              style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+              style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold),
             ),
           ),
         ),
@@ -75,8 +77,8 @@ class OrdersScreen extends ConsumerWidget {
           children: [
             Container(
               padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(color: Colors.blue.shade50, shape: BoxShape.circle),
-              child: const Icon(Icons.receipt_long, size: 60, color: Colors.blueAccent),
+              decoration: BoxDecoration(color: Colors.grey.shade200, shape: BoxShape.circle),
+              child: const Icon(Icons.receipt_long, size: 60, color: Colors.grey),
             ),
             const SizedBox(height: 20),
             const Text(
@@ -84,10 +86,21 @@ class OrdersScreen extends ConsumerWidget {
               style: TextStyle(color: Colors.black87, fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               "Looks like you haven't made your choice yet...",
-              style: TextStyle(color: Colors.grey, fontSize: 14),
+              style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
             ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () {},
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blueAccent,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text("Start Shopping", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            )
           ],
         ),
       );
@@ -102,19 +115,36 @@ class OrdersScreen extends ConsumerWidget {
           final o = orders[index];
           final String status = o.status.toString().toUpperCase();
 
-          int currentStep = 0;
-          if (status == 'SHIPPED') currentStep = 1;
-          if (status == 'DELIVERED') currentStep = 2;
-
           final String displayId = o.id.toString().length > 8
               ? o.id.toString().substring(0, 8).toUpperCase()
               : o.id.toString().toUpperCase();
 
           final double totalAmount = (o.total as num? ?? 0.0).toDouble();
 
+          // Items logic
+          final items = o.items ?? [];
+          final int totalItems = items.fold(0, (sum, item) => sum + (item.quantity as int));
+          final firstItem = items.isNotEmpty ? items.first : null;
+
+          Color statusColor = Colors.orange.shade800;
+          String statusText = "TO SHIP";
+          if (status == 'SHIPPED') {
+            statusColor = Colors.blueAccent;
+            statusText = "TO RECEIVE";
+          } else if (status == 'DELIVERED') {
+            statusColor = Colors.green;
+            statusText = "COMPLETED";
+          } else if (status == 'CANCELLED') {
+            statusColor = Colors.redAccent;
+            statusText = "CANCELLED";
+          }
+
           return Container(
             margin: const EdgeInsets.only(bottom: 12),
-            color: Colors.white,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border(top: BorderSide(color: Colors.grey.shade200), bottom: BorderSide(color: Colors.grey.shade200)),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -124,17 +154,19 @@ class OrdersScreen extends ConsumerWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Row(
+                      Row(
                         children: [
-                          Icon(Icons.storefront, size: 18, color: Colors.blueGrey),
-                          SizedBox(width: 8),
-                          Text("ZentroMart Store", style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 13)),
+                          Icon(Icons.storefront, size: 18, color: Colors.blueGrey.shade700),
+                          const SizedBox(width: 8),
+                          const Text("ZentroMart Official", style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 13)),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.chevron_right, size: 16, color: Colors.grey),
                         ],
                       ),
                       Text(
-                        status == 'PENDING' ? 'TO SHIP' : status == 'SHIPPED' ? 'TO RECEIVE' : 'COMPLETED',
+                        statusText,
                         style: TextStyle(
-                          color: status == 'DELIVERED' ? Colors.green : Colors.orange.shade800,
+                          color: statusColor,
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
                         ),
@@ -144,42 +176,85 @@ class OrdersScreen extends ConsumerWidget {
                 ),
                 const Divider(height: 1, color: Color(0xFFEEEEEE)),
                 
-                // Content (Order ID and Timeline)
-                Padding(
+                // Content (Items List)
+                Container(
+                  color: const Color(0xFFFAFAFA),
                   padding: const EdgeInsets.all(16),
-                  child: Column(
+                  child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text("Order ID: #$displayId", style: const TextStyle(fontSize: 13, color: Colors.grey)),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: o.paymentMethod == 'GCash' ? Colors.blue.shade50 : Colors.orange.shade50,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              o.paymentMethod,
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: o.paymentMethod == 'GCash' ? Colors.blueAccent : Colors.orange.shade900,
-                              ),
-                            ),
-                          ),
-                        ],
+                      // Product Image Placeholder
+                      Container(
+                        width: 70,
+                        height: 70,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.shopping_bag_outlined, color: Colors.grey, size: 30),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(width: 12),
+                      
+                      // Product Details
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              firstItem != null ? firstItem.name : "Unknown Item",
+                              style: const TextStyle(fontSize: 14, color: Colors.black87, fontWeight: FontWeight.w500),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  firstItem != null ? "₱${firstItem.price.toStringAsFixed(2)}" : "₱0.00",
+                                  style: const TextStyle(color: Colors.black87, fontSize: 13),
+                                ),
+                                Text(
+                                  firstItem != null ? "x${firstItem.quantity}" : "x0",
+                                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                                ),
+                              ],
+                            ),
+                            if (items.length > 1)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: Text(
+                                  "+ ${items.length - 1} more item(s)",
+                                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                                ),
+                              )
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                const Divider(height: 1, color: Color(0xFFEEEEEE)),
+                
+                // Total Amount Section
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "$totalItems items",
+                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                      ),
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          _buildTimelineStep(Icons.receipt_long, "Placed", currentStep >= 0),
-                          _buildLine(currentStep >= 1),
-                          _buildTimelineStep(Icons.local_shipping_outlined, "Shipped", currentStep >= 1),
-                          _buildLine(currentStep >= 2),
-                          _buildTimelineStep(Icons.check_circle_outline, "Delivered", currentStep >= 2),
+                          const Text("Order Total: ", style: TextStyle(fontSize: 13, color: Colors.black87)),
+                          Text(
+                            "₱${totalAmount.toStringAsFixed(2)}",
+                            style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.blueAccent, fontSize: 15),
+                          ),
                         ],
                       ),
                     ],
@@ -188,33 +263,40 @@ class OrdersScreen extends ConsumerWidget {
 
                 const Divider(height: 1, color: Color(0xFFEEEEEE)),
 
-                // Footer (Total Price & CTA)
+                // Footer (Action Buttons)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      Text("Order ID: #$displayId", style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                      Row(
                         children: [
-                          const Text("Order Total", style: TextStyle(fontSize: 12, color: Colors.grey)),
-                          Text(
-                            "₱${totalAmount.toStringAsFixed(2)}",
-                            style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.blueAccent, fontSize: 16),
+                          if (status == 'DELIVERED') ...[
+                            OutlinedButton(
+                              onPressed: () {},
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.black87,
+                                side: BorderSide(color: Colors.grey.shade300),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                visualDensity: VisualDensity.compact,
+                              ),
+                              child: const Text("Rate"),
+                            ),
+                            const SizedBox(width: 8),
+                          ],
+                          ElevatedButton(
+                            onPressed: () {},
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: status == 'DELIVERED' ? Colors.blueAccent : Colors.orange.shade800,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                              visualDensity: VisualDensity.compact,
+                            ),
+                            child: Text(status == 'DELIVERED' ? "Buy Again" : "Track Order"),
                           ),
                         ],
-                      ),
-                      ElevatedButton(
-                        onPressed: () {},
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: status == 'DELIVERED' ? Colors.white : Colors.blueAccent,
-                          foregroundColor: status == 'DELIVERED' ? Colors.blueAccent : Colors.white,
-                          elevation: 0,
-                          side: status == 'DELIVERED' ? const BorderSide(color: Colors.blueAccent) : null,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                        ),
-                        child: Text(status == 'DELIVERED' ? "Buy Again" : "Track Order"),
                       ),
                     ],
                   ),
@@ -223,38 +305,6 @@ class OrdersScreen extends ConsumerWidget {
             ),
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildTimelineStep(IconData icon, String label, bool isAchieved) {
-    final Color color = isAchieved ? Colors.blueAccent : Colors.grey.shade300;
-    return Column(
-      children: [
-        CircleAvatar(
-          radius: 14,
-          backgroundColor: isAchieved ? Colors.blue.shade50 : Colors.grey.shade100,
-          child: Icon(icon, size: 14, color: color),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: isAchieved ? FontWeight.bold : FontWeight.normal,
-            color: isAchieved ? Colors.blueGrey.shade900 : Colors.grey.shade400,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildLine(bool isAchieved) {
-    return Expanded(
-      child: Container(
-        height: 2,
-        margin: const EdgeInsets.only(bottom: 16, left: 4, right: 4),
-        color: isAchieved ? Colors.blueAccent : Colors.grey.shade200,
       ),
     );
   }

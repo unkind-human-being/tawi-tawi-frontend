@@ -58,7 +58,9 @@ class _InboxScreenState extends ConsumerState<InboxScreen> {
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
-      appBar: AppBar(iconTheme: const IconThemeData(color: Colors.black), 
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        iconTheme: const IconThemeData(color: Colors.black), 
         title: const Text("Your Messages",
             style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w800)),
         backgroundColor: Colors.white,
