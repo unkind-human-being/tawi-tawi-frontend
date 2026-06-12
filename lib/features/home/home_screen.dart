@@ -8,7 +8,7 @@ import '../auth/auth_provider.dart';
 import '../integrates services/LakbAi/widgets/lakbai_main_layout.dart';
 import '../integrates services/social_health/app service introduction/shu_introduction.dart';
 import '../integrates services/hanap_gawa/app service introduction/introduction_screen.dart' as hanap_gawa_intro;
-import '../integrates services/TDLF-Educ/app service introduction/introduction_screen.dart' as educ_intro;
+import '../integrates services/TDLF-Educ/tdlf_educ_app.dart';
 import '../integrates services/zentromart/zentromart_link_screen.dart' as zentromart;
 import '../integrates services/mesh_messaging/app service introduction/inbox_screen.dart';
 
@@ -121,7 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
         );
         break;
       case 4:
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const educ_intro.TDLFEducIntroductionScreen()));
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TdlfEducApp()));
         break;
       case 5:
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const zentromart.ZentromartLinkScreen()));
@@ -225,7 +225,7 @@ class _HomeScreenState extends State<HomeScreen> {
         icon: Icons.school_rounded,
         color: const Color(0xFF3B82F6),
         isDark: isDark,
-        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const educ_intro.TDLFEducIntroductionScreen())),
+        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TdlfEducApp())),
       ),
       _buildServiceItem(
         title: 'ZentroMart',

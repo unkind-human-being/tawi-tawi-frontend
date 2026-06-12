@@ -80,6 +80,16 @@ dependencies:
   workmanager: ^0.9.0+3
   uuid: ^4.3.3
 
+  # --- TDLF-Educ dependencies ---
+  supabase_flutter: ^2.14.2
+  open_filex: ^4.3.2
+  url_launcher: ^6.3.2
+  # desktop (Windows/Linux) SQLite; harmless on mobile. sqlite3 pinned <3.0.0
+  # to keep the prebuilt-binary path (3.x compiles from source and fails on Windows).
+  sqflite_common_ffi: ^2.3.0
+  sqlite3: ">=2.0.0 <3.0.0"
+  sqlite3_flutter_libs: ^0.5.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
