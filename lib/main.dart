@@ -3,7 +3,16 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' hide ChangeNotifierProvider;
+import 'package:isar/isar.dart';
+import 'package:path_provider/path_provider.dart';
 
+// --- ZENTROMART ISAR MODELS ---
+import 'features/integrates services/zentromart/src/core/database/models/cart_item_model.dart';
+import 'features/integrates services/zentromart/src/core/database/models/order_model.dart';
+import 'features/integrates services/zentromart/src/core/database/models/product_model.dart';
+import 'features/integrates services/zentromart/src/core/database/models/user_model.dart';
+import 'features/integrates services/zentromart/src/core/network/sync_provider.dart';
 // --- FIREBASE IMPORTS ---
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -45,6 +54,22 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // --- ADDED ZENTROMART ISAR INITIALIZATION ---
+  Isar? isarInstance;
+  try {
+    final dir = await getApplicationDocumentsDirectory();
+    if (Isar.getInstance() != null) {
+      isarInstance = Isar.getInstance()!;
+    } else {
+      isarInstance = await Isar.open(
+        [CartItemModelSchema, OrderModelSchema, OrderItemModelSchema, ProductModelSchema, UserModelSchema],
+        directory: dir.path,
+      );
+    }
+  } catch (e) {
+    debugPrint('Isar Initialization Error: $e');
+  }
 
   // --- ADDED PAMEYAAN FIREBASE INITIALIZATION ---
   try {
@@ -89,23 +114,28 @@ Future<void> main() async {
 
   final authProvider = AuthProvider(authRepository);
   await authProvider.initialize();
-runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => ThemeProvider()),
-        ChangeNotifierProvider(create: (_) => SocialHealthAuthProvider()),
-        ChangeNotifierProvider.value(value: authProvider),
-        
-        // LakbAi Providers
-        ChangeNotifierProvider(create: (_) => LakbaiAuthProvider()),
-        ChangeNotifierProvider(create: (_) => LakbaiDestinationsProvider()),
-        ChangeNotifierProvider(create: (_) => LakbaiItineraryProvider()),
-        ChangeNotifierProvider(create: (_) => LakbaiAdminProvider()),
-        
-        // Pameyaan Network Provider
-        ChangeNotifierProvider(create: (_) => NetworkProvider()),
+  runApp(
+    ProviderScope(
+      overrides: [
+        if (isarInstance != null) isarProvider.overrideWithValue(isarInstance),
       ],
-      child: const TawiTawiApp(),
+      child: MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => ThemeProvider()),
+          ChangeNotifierProvider(create: (_) => SocialHealthAuthProvider()),
+          ChangeNotifierProvider.value(value: authProvider),
+          
+          // LakbAi Providers
+          ChangeNotifierProvider(create: (_) => LakbaiAuthProvider()),
+          ChangeNotifierProvider(create: (_) => LakbaiDestinationsProvider()),
+          ChangeNotifierProvider(create: (_) => LakbaiItineraryProvider()),
+          ChangeNotifierProvider(create: (_) => LakbaiAdminProvider()),
+          
+          // Pameyaan Network Provider
+          ChangeNotifierProvider(create: (_) => NetworkProvider()),
+        ],
+        child: const TawiTawiApp(),
+      ),
     ),
   );
 }

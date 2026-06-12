@@ -9,7 +9,7 @@ import '../integrates services/LakbAi/widgets/lakbai_main_layout.dart';
 import '../integrates services/social_health/app service introduction/shu_introduction.dart';
 import '../integrates services/hanap_gawa/app service introduction/introduction_screen.dart' as hanap_gawa_intro;
 import '../integrates services/TDLF-Educ/app service introduction/introduction_screen.dart' as educ_intro;
-import '../integrates services/team ubbama/team ubbama_login_screen.dart' as team_ubbama_login;
+import '../integrates services/zentromart/zentromart_link_screen.dart' as zentromart;
 import '../integrates services/mesh_messaging/app service introduction/inbox_screen.dart';
 
 
@@ -68,7 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
       'image': 'assets/images/educ.webp',
     },
     {
-      'title': 'Team Ubbama',
+      'title': 'ZentroMart',
       'subtitle': 'eCommerce',
       'image': 'assets/images/e store.webp',
     },
@@ -124,7 +124,7 @@ class _HomeScreenState extends State<HomeScreen> {
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const educ_intro.TDLFEducIntroductionScreen()));
         break;
       case 5:
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const team_ubbama_login.TeamUbbamaLoginScreen()));
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const zentromart.ZentromartLinkScreen()));
         break;
       case 6:
         if (widget.onSwitchTab != null) {
@@ -228,12 +228,12 @@ class _HomeScreenState extends State<HomeScreen> {
         onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const educ_intro.TDLFEducIntroductionScreen())),
       ),
       _buildServiceItem(
-        title: 'Team Ubbama',
+        title: 'ZentroMart',
         subtitle: 'Local Stores',
         icon: Icons.storefront_rounded,
         color: const Color(0xFFEF4444),
         isDark: isDark,
-        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const team_ubbama_login.TeamUbbamaLoginScreen())),
+        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const zentromart.ZentromartLinkScreen())),
       ),
     ];
 
