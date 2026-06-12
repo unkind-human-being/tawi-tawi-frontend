@@ -53,10 +53,7 @@ class _VendorProfileScreenState extends ConsumerState<VendorProfileScreen> {
 
     setState(() => _isSaving = true);
     try {
-      // Connects directly to the real vendor service layer
       final vendorService = ref.read(vendorServiceProvider);
-
-      // Matches the precise argument names expected by NestJS
       await vendorService.updateVendorProfile(
         shopName: _shopNameController.text.trim(),
         shopAddress: _addressController.text.trim(),
@@ -64,13 +61,12 @@ class _VendorProfileScreenState extends ConsumerState<VendorProfileScreen> {
         imageFile: _pickedImage,
       );
 
-      // Refresh the dashboard stats provider so the new profile values display instantly
       ref.invalidate(vendorStatsProvider);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Shop profile updated successfully!"),
+            content: Text("Store identity updated successfully! 🎉", style: TextStyle(color: Colors.white)),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
           ),
@@ -81,8 +77,8 @@ class _VendorProfileScreenState extends ConsumerState<VendorProfileScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Update failed: $e"),
-            backgroundColor: Colors.red,
+            content: Text("Update failed: $e", style: const TextStyle(color: Colors.white)),
+            backgroundColor: Colors.redAccent,
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -98,11 +94,11 @@ class _VendorProfileScreenState extends ConsumerState<VendorProfileScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FB),
-      appBar: AppBar(iconTheme: const IconThemeData(color: Colors.black), 
-        title: const Text("Shop Settings", style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w800)),
+      appBar: AppBar(
+        iconTheme: const IconThemeData(color: Colors.black),
+        title: const Text("Store Identity", style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
         centerTitle: true,
         backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
         elevation: 0,
       ),
       body: statsAsync.when(
@@ -119,108 +115,172 @@ class _VendorProfileScreenState extends ConsumerState<VendorProfileScreen> {
           final String completeImageUrl = "http://10.0.26.26:10000$rawAvatarPath";
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  GestureDetector(
-                    onTap: _pickImage,
-                    child: Stack(
-                      children: [
-                        Container(
-                          width: 110,
-                          height: 110,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.grey.shade200,
-                            border: Border.all(color: Colors.white, width: 4),
-                            boxShadow: [
-                              BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 12)
-                            ],
-                          ),
-                          child: ClipOval(
-                            child: _pickedImage != null
-                                ? Image.file(_pickedImage!, fit: BoxFit.cover)
-                                : rawAvatarPath.isNotEmpty
-                                    ? CachedNetworkImage(
-                                        imageUrl: completeImageUrl,
-                                        fit: BoxFit.cover,
-                                        placeholder: (_, __) => const CircularProgressIndicator(),
-                                        errorWidget: (_, __, ___) => const Icon(Icons.storefront, size: 50, color: Colors.grey),
-                                      )
-                                    : const Icon(Icons.storefront, size: 50, color: Colors.grey),
-                          ),
+            child: Column(
+              children: [
+                // Top Header block with overlapping avatar
+                Stack(
+                  alignment: Alignment.bottomCenter,
+                  children: [
+                    Container(
+                      height: 180,
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 60),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Colors.blue.shade800, Colors.blueAccent],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
                         ),
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: CircleAvatar(
-                            radius: 16,
-                            backgroundColor: Colors.blueGrey.shade900,
-                            child: const Icon(Icons.camera_alt, color: Colors.white, size: 16),
+                      ),
+                      child: Stack(
+                        children: [
+                          Positioned(
+                            right: -20,
+                            top: -20,
+                            child: Icon(Icons.storefront, size: 150, color: Colors.white.withValues(alpha: 0.1)),
                           ),
-                        ),
-                      ],
+                          const Positioned(
+                            left: 24,
+                            top: 40,
+                            child: Text(
+                              "Build Your Brand",
+                              style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          const Positioned(
+                            left: 24,
+                            top: 70,
+                            child: Text(
+                              "Make your store stand out to customers.",
+                              style: TextStyle(color: Colors.white70, fontSize: 14),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    
+                    // Avatar Box
+                    GestureDetector(
+                      onTap: _pickImage,
+                      child: Stack(
+                        children: [
+                          Container(
+                            width: 120,
+                            height: 120,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white,
+                              border: Border.all(color: Colors.white, width: 4),
+                              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, 5))],
+                            ),
+                            child: ClipOval(
+                              child: _pickedImage != null
+                                  ? Image.file(_pickedImage!, fit: BoxFit.cover)
+                                  : rawAvatarPath.isNotEmpty
+                                      ? CachedNetworkImage(
+                                          imageUrl: completeImageUrl,
+                                          fit: BoxFit.cover,
+                                          placeholder: (_, __) => const CircularProgressIndicator(),
+                                          errorWidget: (_, __, ___) => const Icon(Icons.storefront, size: 50, color: Colors.grey),
+                                        )
+                                      : Container(color: Colors.blue.shade50, child: const Icon(Icons.storefront, size: 50, color: Colors.blueAccent)),
+                            ),
+                          ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.blueAccent,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 3),
+                              ),
+                              child: const Icon(Icons.camera_alt, color: Colors.white, size: 16),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                
+                const SizedBox(height: 16),
+                const Text("Store Logo", style: TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 24),
+
+                // Form Card
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Container(
                     decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(20),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.grey.shade200),
+                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
                     ),
-                    child: const Text(
-                      'VENDOR',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blueAccent),
+                    padding: const EdgeInsets.all(24),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text("Business Information", style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 16)),
+                          const SizedBox(height: 24),
+                          
+                          _buildTextField(
+                            label: "Official Shop Name",
+                            hint: "e.g. ZentroGadgets Official",
+                            controller: _shopNameController,
+                            icon: Icons.store,
+                            validator: (v) => v!.trim().isEmpty ? "Shop name is required" : null,
+                          ),
+                          const SizedBox(height: 20),
+                          _buildTextField(
+                            label: "Store Address / Pickup Location",
+                            hint: "Full operational address...",
+                            controller: _addressController,
+                            icon: Icons.location_on_outlined,
+                            validator: (v) => v!.trim().isEmpty ? "Pickup location is required" : null,
+                          ),
+                          const SizedBox(height: 20),
+                          _buildTextField(
+                            label: "Business Description",
+                            hint: "Tell customers what you sell...",
+                            controller: _descriptionController,
+                            icon: Icons.description_outlined,
+                            maxLines: 4,
+                            validator: (v) => v!.trim().isEmpty ? "Please provide a short summary" : null,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 32),
-                  _buildTextField(
-                    label: "Official Shop Name",
-                    controller: _shopNameController,
-                    icon: Icons.store,
-                    validator: (v) => v!.trim().isEmpty ? "Shop name is required" : null,
-                  ),
-                  const SizedBox(height: 20),
-                  _buildTextField(
-                    label: "Business Description",
-                    controller: _descriptionController,
-                    icon: Icons.description_outlined,
-                    maxLines: 3,
-                    validator: (v) => v!.trim().isEmpty ? "Please provide a short summary" : null,
-                  ),
-                  const SizedBox(height: 20),
-                  _buildTextField(
-                    label: "Store Address / Pickup Location",
-                    controller: _addressController,
-                    icon: Icons.location_on_outlined,
-                    validator: (v) => v!.trim().isEmpty ? "Pickup location is required" : null,
-                  ),
-                  const SizedBox(height: 40),
-                  SizedBox(
+                ),
+
+                const SizedBox(height: 32),
+                
+                // Save Button
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: SizedBox(
                     width: double.infinity,
                     height: 55,
                     child: ElevatedButton(
                       onPressed: _isSaving ? null : _saveProfile,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blueGrey.shade900,
+                        backgroundColor: Colors.blueAccent,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         elevation: 0,
                       ),
                       child: _isSaving
-                          ? const SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                          : const Text("Save Business Profile",
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                          : const Text("Save Store Identity", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
                     ),
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 40),
+              ],
             ),
           );
         },
@@ -232,6 +292,7 @@ class _VendorProfileScreenState extends ConsumerState<VendorProfileScreen> {
 
   Widget _buildTextField({
     required String label,
+    required String hint,
     required TextEditingController controller,
     required IconData icon,
     int maxLines = 1,
@@ -240,21 +301,24 @@ class _VendorProfileScreenState extends ConsumerState<VendorProfileScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+        Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey.shade700)),
         const SizedBox(height: 8),
         TextFormField(
           controller: controller,
           maxLines: maxLines,
           validator: validator,
+          style: const TextStyle(color: Colors.black87),
           decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: TextStyle(color: Colors.grey.shade400),
             prefixIcon: Icon(icon, color: Colors.grey.shade400, size: 20),
             filled: true,
-            fillColor: Colors.white,
+            fillColor: Colors.grey.shade50,
             contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
             enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.blueAccent, width: 1.5)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.blueAccent, width: 2)),
             errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.redAccent)),
-            focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.redAccent, width: 1.5)),
+            focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.redAccent, width: 2)),
           ),
         ),
       ],

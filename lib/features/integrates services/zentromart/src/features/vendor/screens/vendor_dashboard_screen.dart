@@ -3,10 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:tawi_tawi_frontend/features/integrates services/zentromart/src/features/chat/inbox_screen.dart';
 import '../providers/vendor_provider.dart';
-import '../../auth/providers/auth_provider.dart';
 import 'vendor_inventory_screen.dart';
 import 'vendor_product_form_screen.dart';
-import 'vendor_profile_screen.dart'; // Import the settings screen for editing navigation
+import 'vendor_profile_screen.dart';
+import 'vendor_orders_screen.dart';
 
 class VendorDashboardScreen extends ConsumerWidget {
   const VendorDashboardScreen({super.key});
@@ -16,335 +16,349 @@ class VendorDashboardScreen extends ConsumerWidget {
     final statsAsync = ref.watch(vendorStatsProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FB),
-      appBar: AppBar(iconTheme: const IconThemeData(color: Colors.black), 
-        title: const Text('Store Analytics',
-            style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        foregroundColor: Colors.black,
-        actions: [
-          IconButton(
-              icon: const Icon(Icons.settings_outlined),
-              onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => const VendorProfileScreen()))),
-          IconButton(
-              icon: const Icon(Icons.mail_outline),
-              onPressed: () => Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const InboxScreen()))),
-        ],
-      ),
+      backgroundColor: const Color(0xFFF5F7FA), // Soft cool grey background
       body: statsAsync.when(
         data: (stats) {
-          final totalRevenue =
-              double.tryParse(stats['totalRevenue']?.toString() ?? '0') ?? 0.0;
+          final totalRevenue = double.tryParse(stats['totalRevenue']?.toString() ?? '0') ?? 0.0;
+          final int lowStockCount = int.tryParse(stats['lowStockCount']?.toString() ?? '0') ?? 0;
+          final int pendingOrders = int.tryParse(stats['pendingOrders']?.toString() ?? '0') ?? 0;
+          final int totalProducts = int.tryParse(stats['totalProducts']?.toString() ?? '0') ?? 0;
 
-          final int lowStockCount =
-              int.tryParse(stats['lowStockCount']?.toString() ?? '0') ?? 0;
-
-          // Safe extraction of the nested shop profile attributes package
-          final Map<String, dynamic> profile =
-              stats['profile'] as Map<String, dynamic>? ?? {};
-          final String shopName = profile['shopName']?.toString() ??
-              stats['name']?.toString() ??
-              'My Store';
-          final String shopAddress =
-              profile['shopAddress']?.toString() ?? 'No location configured';
+          final Map<String, dynamic> profile = stats['profile'] as Map<String, dynamic>? ?? {};
+          final String shopName = profile['shopName']?.toString() ?? stats['name']?.toString() ?? 'My Store';
           final String rawAvatarPath = profile['avatarUrl']?.toString() ?? '';
-
-          // Compute full target network path pointing to the static assets port matching NestJS configuration
-          final String completeImageUrl =
-              "http://10.0.26.26:10000$rawAvatarPath";
+          final String completeImageUrl = "http://10.0.26.26:10000$rawAvatarPath";
 
           return RefreshIndicator(
             onRefresh: () async => ref.refresh(vendorStatsProvider),
-            child: SingleChildScrollView(
+            child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  // NEW ADDITION: Premium Storefront Branding Info Banner
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    margin: const EdgeInsets.only(bottom: 20),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.grey.shade200),
+              slivers: [
+                // Premium Gradient App Bar & Profile Header
+                SliverAppBar(
+                  expandedHeight: 220.0,
+                  floating: false,
+                  pinned: true,
+                  backgroundColor: Colors.blue.shade900,
+                  iconTheme: const IconThemeData(color: Colors.white),
+                  actions: [
+                    IconButton(
+                      icon: const Icon(Icons.mail_outline, color: Colors.white),
+                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const InboxScreen())),
                     ),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 32,
-                          backgroundColor: Colors.grey.shade100,
-                          child: rawAvatarPath.isNotEmpty
-                              ? ClipOval(
-                                  child: CachedNetworkImage(
-                                    imageUrl: completeImageUrl,
-                                    fit: BoxFit.cover,
-                                    width: 64,
-                                    height: 64,
-                                    placeholder: (context, url) =>
-                                        const CircularProgressIndicator(
-                                            strokeWidth: 2),
-                                    errorWidget: (context, url, error) =>
-                                        const Icon(Icons.storefront, size: 32),
-                                  ),
-                                )
-                              : const Icon(Icons.storefront,
-                                  size: 32, color: Colors.grey),
+                    IconButton(
+                      icon: const Icon(Icons.settings_outlined, color: Colors.white),
+                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VendorProfileScreen())),
+                    ),
+                  ],
+                  flexibleSpace: FlexibleSpaceBar(
+                    background: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Colors.blue.shade900, Colors.blue.shade600],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
                         ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                      ),
+                      child: SafeArea(
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 60, left: 24, right: 24),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              Text(
-                                shopName,
-                                style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black87),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                              Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white, width: 3),
+                                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 10)],
+                                ),
+                                child: CircleAvatar(
+                                  radius: 34,
+                                  backgroundColor: Colors.white,
+                                  child: rawAvatarPath.isNotEmpty
+                                      ? ClipOval(
+                                          child: CachedNetworkImage(
+                                            imageUrl: completeImageUrl,
+                                            fit: BoxFit.cover,
+                                            width: 68,
+                                            height: 68,
+                                            errorWidget: (context, url, error) => const Icon(Icons.storefront, size: 34, color: Colors.grey),
+                                          ),
+                                        )
+                                      : Icon(Icons.storefront, size: 34, color: Colors.blue.shade900),
+                                ),
                               ),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  Icon(Icons.location_on_outlined,
-                                      size: 14, color: Colors.grey.shade500),
-                                  const SizedBox(width: 4),
-                                  Expanded(
-                                    child: Text(
-                                      shopAddress,
-                                      style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey.shade600),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      shopName,
+                                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
+                                    const SizedBox(height: 6),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(alpha: 0.2),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.star, size: 12, color: Colors.amber),
+                                          SizedBox(width: 4),
+                                          Text("4.9 Rating", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(Icons.chevron_right, color: Colors.white70),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                SliverToBoxAdapter(
+                  child: Transform.translate(
+                    offset: const Offset(0, -15),
+                    child: Column(
+                      children: [
+                        // Overlapping Main Revenue Card
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Container(
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.05),
+                                  blurRadius: 20,
+                                  offset: const Offset(0, 10),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text("Total Revenue", style: TextStyle(color: Colors.grey.shade600, fontSize: 14, fontWeight: FontWeight.w600)),
+                                    Icon(Icons.trending_up, color: Colors.green.shade500, size: 20),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  "₱${totalRevenue.toStringAsFixed(2)}",
+                                  style: const TextStyle(color: Colors.black87, fontSize: 34, fontWeight: FontWeight.w900, letterSpacing: -1),
+                                ),
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 16),
+                                  child: Divider(height: 1, color: Color(0xFFEEEEEE)),
+                                ),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: _buildMiniStatCard("Products", "$totalProducts", Icons.inventory_2_outlined, Colors.purple),
+                                    ),
+                                    Container(width: 1, height: 40, color: const Color(0xFFEEEEEE)),
+                                    Expanded(
+                                      child: _buildMiniStatCard("Pending", "$pendingOrders", Icons.local_shipping_outlined, Colors.orange),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        // Low Stock Warning
+                        if (lowStockCount > 0)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFF7ED), // Soft orange bg
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: const Color(0xFFFFEDD5)),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                                    child: Icon(Icons.warning_amber_rounded, color: Colors.orange.shade700, size: 20),
                                   ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text("Low Stock Alert", style: TextStyle(color: Colors.orange.shade900, fontWeight: FontWeight.bold, fontSize: 14)),
+                                        const SizedBox(height: 2),
+                                        Text("$lowStockCount products need restock", style: TextStyle(color: Colors.orange.shade800, fontSize: 12)),
+                                      ],
+                                    ),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VendorInventoryScreen())),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.orange.shade600,
+                                      foregroundColor: Colors.white,
+                                      elevation: 0,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                                      visualDensity: VisualDensity.compact,
+                                    ),
+                                    child: const Text("Fix", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                  )
                                 ],
+                              ),
+                            ),
+                          ),
+
+                        // App Tools Section
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 30, 20, 20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text("Store Management", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.black87)),
+                              const SizedBox(height: 16),
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(20),
+                                  boxShadow: [
+                                    BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4)),
+                                  ],
+                                ),
+                                child: GridView.count(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  crossAxisCount: 4,
+                                  childAspectRatio: 0.85,
+                                  padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 8),
+                                  mainAxisSpacing: 24,
+                                  crossAxisSpacing: 12,
+                                  children: [
+                                    _buildModernTool(context, "Products", Icons.inventory_2, const Color(0xFF3B82F6), () {
+                                      Navigator.push(context, MaterialPageRoute(builder: (_) => const VendorInventoryScreen()));
+                                    }),
+                                    _buildModernTool(context, "Orders", Icons.receipt_long, const Color(0xFFF59E0B), () {
+                                      Navigator.push(context, MaterialPageRoute(builder: (_) => const VendorOrdersScreen()));
+                                    }),
+                                    _buildModernTool(context, "Finance", Icons.account_balance_wallet, const Color(0xFF10B981), () {
+                                      _showComingSoon(context, "Finance Center");
+                                    }),
+                                    _buildModernTool(context, "Marketing", Icons.campaign, const Color(0xFFEF4444), () {
+                                      _showComingSoon(context, "Marketing Tools");
+                                    }),
+                                    _buildModernTool(context, "Analytics", Icons.insert_chart, const Color(0xFF8B5CF6), () {
+                                      _showComingSoon(context, "Store Analytics");
+                                    }),
+                                    _buildModernTool(context, "Shop Decor", Icons.format_paint, const Color(0xFFEC4899), () {
+                                      _showComingSoon(context, "Shop Decoration");
+                                    }),
+                                    _buildModernTool(context, "Help", Icons.support_agent, const Color(0xFF06B6D4), () {
+                                      _showComingSoon(context, "Seller Support");
+                                    }),
+                                    _buildModernTool(context, "Settings", Icons.settings, const Color(0xFF64748B), () {
+                                      Navigator.push(context, MaterialPageRoute(builder: (_) => const VendorProfileScreen()));
+                                    }),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.edit_outlined,
-                              color: Colors.blueAccent, size: 20),
-                          onPressed: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const VendorProfileScreen())),
-                        ),
+                        const SizedBox(height: 80), // Fab space
                       ],
                     ),
                   ),
-
-                  // Revenue Card
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(32),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                          colors: [Colors.blue.shade800, Colors.blue.shade600]),
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: Column(
-                      children: [
-                        const Text("Total Revenue",
-                            style:
-                                TextStyle(color: Colors.white70, fontSize: 16)),
-                        Text("₱${totalRevenue.toStringAsFixed(2)}",
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 40,
-                                fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                  ),
-
-                  if (lowStockCount > 0) ...[
-                    const SizedBox(height: 16),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.shade50,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                            color: Colors.orangeAccent.withValues(alpha: 0.3)),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.warning_amber_rounded,
-                              color: Colors.orangeAccent),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              "Warning: You have $lowStockCount item(s) running low or out of stock!",
-                              style: TextStyle(
-                                color: Colors.orange.shade900,
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (_) =>
-                                        const VendorInventoryScreen())),
-                            style: TextButton.styleFrom(
-                                visualDensity: VisualDensity.compact),
-                            child: const Text("Fix Now",
-                                style: TextStyle(
-                                    color: Colors.blueAccent,
-                                    fontWeight: FontWeight.bold)),
-                          )
-                        ],
-                      ),
-                    ),
-                  ],
-
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(
-                          child: _buildStatCard(
-                              "Products",
-                              "${stats['totalProducts'] ?? 0}",
-                              Icons.inventory,
-                              Colors.blue)),
-                      const SizedBox(width: 16),
-                      Expanded(
-                          child: _buildStatCard(
-                              "Pending",
-                              "${stats['pendingOrders'] ?? 0}",
-                              Icons.pending_actions,
-                              Colors.orange)),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  ListTile(
-                    tileColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
-                    leading: const Icon(Icons.inventory_2),
-                    title: const Text("Manage Inventory"),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                    onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const VendorInventoryScreen())),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) {
-          return Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(Icons.cloud_off_rounded,
-                        size: 64, color: Colors.blueGrey.shade300),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    "Analytics are Offline",
-                    style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    "ZentroMart cannot connect to the server right now. You can still manage your storage inventory fields locally.",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey.shade600, height: 1.4),
-                  ),
-                  const SizedBox(height: 24),
-                  Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        side: BorderSide(color: Colors.grey.shade200)),
-                    color: Colors.white,
-                    child: ListTile(
-                      leading: const Icon(Icons.inventory_2,
-                          color: Colors.blueAccent),
-                      title: const Text("Open Local Inventory",
-                          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w600)),
-                      subtitle: const Text("Browse, update or delete products"),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const VendorInventoryScreen())),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: () => ref.refresh(vendorStatsProvider),
-                    icon: const Icon(Icons.refresh_rounded),
-                    label: const Text("Retry Connection"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blueGrey.shade900,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
+        loading: () => const Center(child: CircularProgressIndicator(color: Colors.blueAccent)),
+        error: (err, _) => Center(child: Text("Error: $err", style: const TextStyle(color: Colors.redAccent))),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.push(context,
-            MaterialPageRoute(builder: (_) => const VendorProductFormScreen())),
-        label: const Text("Add Product"),
-        icon: const Icon(Icons.add),
+        backgroundColor: Colors.blue.shade800,
+        foregroundColor: Colors.white,
+        elevation: 4,
+        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VendorProductFormScreen())),
+        label: const Text("Add Product", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+        icon: const Icon(Icons.add_circle_outline),
       ),
     );
   }
 
-  Widget _buildStatCard(
-      String title, String value, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.grey.shade200)),
+  Widget _buildMiniStatCard(String title, String value, IconData icon, Color iconColor) {
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 16, color: iconColor),
+            const SizedBox(width: 6),
+            Text(title, style: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500)),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(value, style: const TextStyle(color: Colors.black87, fontSize: 20, fontWeight: FontWeight.bold)),
+      ],
+    );
+  }
+
+  Widget _buildModernTool(BuildContext context, String title, IconData icon, Color color, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: color, size: 30),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 30),
+          ),
           const SizedBox(height: 10),
-          Text(value,
-              style:
-                  const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-          Text(title, style: TextStyle(color: Colors.grey.shade600)),
+          Text(
+            title,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black87),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ],
+      ),
+    );
+  }
+
+  void _showComingSoon(BuildContext context, String feature) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("$feature is coming soon!", style: const TextStyle(color: Colors.white)),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Colors.blueGrey.shade900,
       ),
     );
   }
