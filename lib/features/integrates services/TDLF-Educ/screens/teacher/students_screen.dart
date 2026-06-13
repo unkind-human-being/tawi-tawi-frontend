@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import 'directory_screen.dart';
 
 class StudentsScreen extends StatefulWidget {
   const StudentsScreen({super.key});
@@ -43,6 +44,13 @@ class _StudentsScreenState extends State<StudentsScreen> {
       appBar: AppBar(
         title: const Text('Student Progress'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.contacts_rounded),
+            tooltip: 'Directory',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const DirectoryScreen()),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
             onPressed: _loadStudents,

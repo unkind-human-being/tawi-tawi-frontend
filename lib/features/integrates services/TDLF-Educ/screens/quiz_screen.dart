@@ -105,8 +105,22 @@ class _QuizScreenState extends State<QuizScreen>
     final questionCtrl = TextEditingController();
     final answerCtrl = TextEditingController();
     final reasonCtrl = TextEditingController();
-    String quizType = 'open_ended';
+    // Multiple-choice editor state (starts with two empty options).
+    final optionCtrls = <TextEditingController>[
+      TextEditingController(),
+      TextEditingController(),
+    ];
+    int correctIndex = 0;
+    String quizType = 'multiple_choice';
     final cs = Theme.of(context).colorScheme;
+
+    const types = <(String, String)>[
+      ('multiple_choice', 'Multiple Choice'),
+      ('true_false', 'True / False'),
+      ('fill_blank', 'Fill in the Blank'),
+      ('enumeration', 'Enumeration'),
+      ('open_ended', 'Open Ended'),
+    ];
 
     final courses = context.read<CourseProvider>().courses;
     String courseId =
@@ -115,144 +129,263 @@ class _QuizScreenState extends State<QuizScreen>
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('Add Quiz Question'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextField(
-                  controller: questionCtrl,
-                  maxLines: 3,
-                  decoration: const InputDecoration(
-                    labelText: 'Question *',
-                    prefixIcon: Icon(Icons.help_outline_rounded),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text('Type', style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
-                const SizedBox(height: 6),
-                SegmentedButton<String>(
-                  segments: const [
-                    ButtonSegment(value: 'open_ended', label: Text('Open Ended')),
-                    ButtonSegment(value: 'true_false', label: Text('True / False')),
-                  ],
-                  selected: {quizType},
-                  onSelectionChanged: (s) {
-                    setDialogState(() {
-                      quizType = s.first;
-                      if (quizType == 'true_false') answerCtrl.text = 'True';
-                    });
-                  },
-                  style: ButtonStyle(
-                    shape: WidgetStateProperty.all(
-                      RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        builder: (ctx, setDialogState) {
+          // The answer input changes with the selected question type.
+          Widget answerSection() {
+            switch (quizType) {
+              case 'true_false':
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Correct Answer',
+                        style: TextStyle(
+                            fontSize: 12, color: cs.onSurfaceVariant)),
+                    const SizedBox(height: 6),
+                    SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment(value: 'True', label: Text('True')),
+                        ButtonSegment(value: 'False', label: Text('False')),
+                      ],
+                      selected: {
+                        answerCtrl.text == 'False' ? 'False' : 'True'
+                      },
+                      onSelectionChanged: (s) =>
+                          setDialogState(() => answerCtrl.text = s.first),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                quizType == 'true_false'
-                    ? Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Correct Answer', style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
-                          const SizedBox(height: 6),
-                          SegmentedButton<String>(
-                            segments: const [
-                              ButtonSegment(value: 'True', label: Text('True')),
-                              ButtonSegment(value: 'False', label: Text('False')),
-                            ],
-                            selected: {answerCtrl.text.isEmpty ? 'True' : answerCtrl.text},
-                            onSelectionChanged: (s) {
-                              setDialogState(() => answerCtrl.text = s.first);
-                            },
-                          ),
-                        ],
-                      )
-                    : TextField(
-                        controller: answerCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'Correct Answer *',
-                          prefixIcon: Icon(Icons.check_rounded),
+                  ],
+                );
+              case 'multiple_choice':
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Options — tap a circle to mark the correct one',
+                        style: TextStyle(
+                            fontSize: 12, color: cs.onSurfaceVariant)),
+                    const SizedBox(height: 4),
+                    for (int i = 0; i < optionCtrls.length; i++)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: Row(
+                          children: [
+                            IconButton(
+                              visualDensity: VisualDensity.compact,
+                              icon: Icon(
+                                correctIndex == i
+                                    ? Icons.radio_button_checked
+                                    : Icons.radio_button_off,
+                                color: correctIndex == i
+                                    ? cs.primary
+                                    : cs.onSurfaceVariant,
+                              ),
+                              onPressed: () =>
+                                  setDialogState(() => correctIndex = i),
+                            ),
+                            Expanded(
+                              child: TextField(
+                                controller: optionCtrls[i],
+                                decoration: InputDecoration(
+                                  isDense: true,
+                                  hintText: 'Option ${i + 1}',
+                                ),
+                              ),
+                            ),
+                            if (optionCtrls.length > 2)
+                              IconButton(
+                                visualDensity: VisualDensity.compact,
+                                icon: Icon(Icons.close_rounded,
+                                    size: 18, color: cs.onSurfaceVariant),
+                                onPressed: () => setDialogState(() {
+                                  optionCtrls.removeAt(i);
+                                  if (correctIndex >= optionCtrls.length) {
+                                    correctIndex = optionCtrls.length - 1;
+                                  }
+                                }),
+                              ),
+                          ],
                         ),
                       ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: reasonCtrl,
-                  maxLines: 2,
+                    if (optionCtrls.length < 6)
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton.icon(
+                          onPressed: () => setDialogState(
+                              () => optionCtrls.add(TextEditingController())),
+                          icon: const Icon(Icons.add_rounded, size: 18),
+                          label: const Text('Add option'),
+                        ),
+                      ),
+                  ],
+                );
+              case 'enumeration':
+                return TextField(
+                  controller: answerCtrl,
+                  maxLines: 3,
                   decoration: const InputDecoration(
-                    labelText: 'Explanation (optional)',
-                    prefixIcon: Icon(Icons.info_outline_rounded),
+                    labelText: 'Expected answers *',
+                    helperText: 'Separate each item with a comma or new line',
+                    prefixIcon: Icon(Icons.format_list_numbered_rounded),
                   ),
-                ),
-                const SizedBox(height: 12),
-                InputDecorator(
+                );
+              default: // fill_blank, open_ended
+                return TextField(
+                  controller: answerCtrl,
                   decoration: const InputDecoration(
-                    labelText: 'Course',
-                    prefixIcon: Icon(Icons.class_outlined),
+                    labelText: 'Correct Answer *',
+                    prefixIcon: Icon(Icons.check_rounded),
                   ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: courseId,
-                      isDense: true,
-                      isExpanded: true,
-                      items: courses
-                          .map((c) => DropdownMenuItem(
-                                value: c['id'] as String,
-                                child: Text(c['title'] as String,
-                                    overflow: TextOverflow.ellipsis),
-                              ))
-                          .toList(),
-                      onChanged: (v) {
-                        if (v != null) setDialogState(() => courseId = v);
-                      },
+                );
+            }
+          }
+
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20)),
+            title: const Text('Add Quiz Question'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: questionCtrl,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      labelText: 'Question *',
+                      prefixIcon: Icon(Icons.help_outline_rounded),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final question = questionCtrl.text.trim();
-                final answer = answerCtrl.text.trim();
-                if (question.isEmpty || answer.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Question and answer are required'),
-                      backgroundColor: cs.error,
+                  const SizedBox(height: 12),
+                  InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: 'Question Type',
+                      prefixIcon: Icon(Icons.category_outlined),
                     ),
-                  );
-                  return;
-                }
-                Navigator.pop(ctx);
-                final ok = await context.read<QuizProvider>().addQuiz({
-                  'question': question,
-                  'quiz_type': quizType,
-                  'correct_answer': answer,
-                  'reason': reasonCtrl.text.trim(),
-                  'course_id': courseId,
-                });
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: quizType,
+                        isDense: true,
+                        isExpanded: true,
+                        items: types
+                            .map((t) => DropdownMenuItem(
+                                  value: t.$1,
+                                  child: Text(t.$2),
+                                ))
+                            .toList(),
+                        onChanged: (v) {
+                          if (v == null) return;
+                          setDialogState(() {
+                            quizType = v;
+                            if (quizType == 'true_false' &&
+                                answerCtrl.text != 'True' &&
+                                answerCtrl.text != 'False') {
+                              answerCtrl.text = 'True';
+                            }
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  answerSection(),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: reasonCtrl,
+                    maxLines: 2,
+                    decoration: const InputDecoration(
+                      labelText: 'Explanation (optional)',
+                      prefixIcon: Icon(Icons.info_outline_rounded),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: 'Course',
+                      prefixIcon: Icon(Icons.class_outlined),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: courseId,
+                        isDense: true,
+                        isExpanded: true,
+                        items: courses
+                            .map((c) => DropdownMenuItem(
+                                  value: c['id'] as String,
+                                  child: Text(c['title'] as String,
+                                      overflow: TextOverflow.ellipsis),
+                                ))
+                            .toList(),
+                        onChanged: (v) {
+                          if (v != null) setDialogState(() => courseId = v);
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  final question = questionCtrl.text.trim();
+                  final messenger = ScaffoldMessenger.of(context);
+                  final quizProvider = context.read<QuizProvider>();
+                  void warn(String m) => messenger.showSnackBar(
+                        SnackBar(content: Text(m), backgroundColor: cs.error),
+                      );
+
+                  String correct;
+                  List<String>? options;
+                  if (quizType == 'multiple_choice') {
+                    final opts = optionCtrls
+                        .map((c) => c.text.trim())
+                        .where((t) => t.isNotEmpty)
+                        .toList();
+                    if (question.isEmpty || opts.length < 2) {
+                      warn('Add a question and at least 2 options');
+                      return;
+                    }
+                    if (correctIndex >= optionCtrls.length ||
+                        optionCtrls[correctIndex].text.trim().isEmpty) {
+                      warn('Mark which option is correct');
+                      return;
+                    }
+                    correct = optionCtrls[correctIndex].text.trim();
+                    options = opts;
+                  } else {
+                    correct = answerCtrl.text.trim();
+                    if (question.isEmpty || correct.isEmpty) {
+                      warn('Question and answer are required');
+                      return;
+                    }
+                  }
+
+                  Navigator.pop(ctx);
+                  final data = <String, dynamic>{
+                    'question': question,
+                    'quiz_type': quizType,
+                    'correct_answer': correct,
+                    'reason': reasonCtrl.text.trim(),
+                    'course_id': courseId,
+                  };
+                  if (options != null) data['options'] = options;
+                  final ok = await quizProvider.addQuiz(data);
+                  messenger.showSnackBar(
                     SnackBar(
-                      content: Text(ok ? 'Quiz added!' : 'Failed to add quiz'),
+                      content:
+                          Text(ok ? 'Quiz added!' : 'Failed to add quiz'),
                       backgroundColor: ok ? cs.primary : cs.error,
                     ),
                   );
-                }
-              },
-              child: const Text('Add'),
-            ),
-          ],
-        ),
+                },
+                child: const Text('Add'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -295,9 +428,11 @@ class _AvailableTabState extends State<_AvailableTab> {
           return _buildEmpty(context, cs);
         }
 
-        // Course ids present overall — keeps the course chips stable even when
-        // the search / type filters hide everything in a course.
+        // Show every course (from the shared course list, incl. ones added in
+        // Books with no quizzes yet) plus any course a quiz already belongs to.
         final courseIds = <String>{
+          for (final c in context.read<CourseProvider>().courses)
+            c['id'] as String,
           for (final q in provider.quizzes) (q['course_id'] ?? 'unknown') as String,
         };
 
@@ -474,24 +609,7 @@ class _AvailableTabState extends State<_AvailableTab> {
                       return _QuizCard(
                         quiz: quiz,
                         isTeacher: widget.isTeacher,
-                        onDelete: () async {
-                          final ok = await context
-                              .read<QuizProvider>()
-                              .deleteQuiz(
-                                quiz['quiz_id'] ?? quiz['id'] ?? '',
-                              );
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(ok
-                                    ? 'Quiz deleted'
-                                    : 'Failed to delete'),
-                                backgroundColor:
-                                    ok ? cs.primary : cs.error,
-                              ),
-                            );
-                          }
-                        },
+                        onManage: () => _showQuizActions(context, quiz),
                       );
                     },
                     childCount: entry.value.length,
@@ -606,6 +724,265 @@ class _AvailableTabState extends State<_AvailableTab> {
       ),
     );
   }
+
+  /// Teacher action sheet for a quiz: edit / delete.
+  void _showQuizActions(BuildContext context, Map<String, dynamic> quiz) {
+    final cs = Theme.of(context).colorScheme;
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  quiz['question'] ?? 'Quiz',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.w700),
+                ),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.edit_rounded),
+              title: const Text('Edit question'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showEditQuizDialog(context, quiz);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.delete_rounded, color: cs.error),
+              title: Text('Delete', style: TextStyle(color: cs.error)),
+              onTap: () async {
+                Navigator.pop(ctx);
+                final ok = await context
+                    .read<QuizProvider>()
+                    .deleteQuiz(quiz['quiz_id'] ?? quiz['id'] ?? '');
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content:
+                          Text(ok ? 'Quiz deleted' : 'Failed to delete'),
+                      backgroundColor: ok ? cs.primary : cs.error,
+                    ),
+                  );
+                }
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Pre-filled "Edit Quiz" dialog (mirrors the Add dialog). Richer types
+  /// (multiple choice, fill-in, enumeration) keep their type and options.
+  void _showEditQuizDialog(BuildContext context, Map<String, dynamic> quiz) {
+    final questionCtrl =
+        TextEditingController(text: quiz['question']?.toString() ?? '');
+    final answerCtrl =
+        TextEditingController(text: quiz['correct_answer']?.toString() ?? '');
+    final reasonCtrl =
+        TextEditingController(text: quiz['reason']?.toString() ?? '');
+    String quizType = (quiz['quiz_type'] ?? 'open_ended').toString();
+    final canToggleType =
+        quizType == 'open_ended' || quizType == 'true_false';
+    final cs = Theme.of(context).colorScheme;
+
+    final courses = context.read<CourseProvider>().courses;
+    final courseIds = courses.map((c) => c['id'] as String).toSet();
+    String courseId = courseIds.contains(quiz['course_id'])
+        ? quiz['course_id'] as String
+        : (courses.isNotEmpty ? courses.first['id'] as String : 'course-001');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('Edit Quiz Question'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: questionCtrl,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    labelText: 'Question *',
+                    prefixIcon: Icon(Icons.help_outline_rounded),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text('Type',
+                    style:
+                        TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+                const SizedBox(height: 6),
+                if (canToggleType)
+                  SegmentedButton<String>(
+                    segments: const [
+                      ButtonSegment(
+                          value: 'open_ended', label: Text('Open Ended')),
+                      ButtonSegment(
+                          value: 'true_false', label: Text('True / False')),
+                    ],
+                    selected: {quizType},
+                    onSelectionChanged: (s) {
+                      setDialogState(() {
+                        quizType = s.first;
+                        if (quizType == 'true_false' &&
+                            answerCtrl.text != 'True' &&
+                            answerCtrl.text != 'False') {
+                          answerCtrl.text = 'True';
+                        }
+                      });
+                    },
+                    style: ButtonStyle(
+                      shape: WidgetStateProperty.all(
+                        RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                  )
+                else
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: cs.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(quizTypeLabel(quizType),
+                        style: TextStyle(fontSize: 13, color: cs.onSurface)),
+                  ),
+                const SizedBox(height: 12),
+                quizType == 'true_false'
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Correct Answer',
+                              style: TextStyle(
+                                  fontSize: 12, color: cs.onSurfaceVariant)),
+                          const SizedBox(height: 6),
+                          SegmentedButton<String>(
+                            segments: const [
+                              ButtonSegment(
+                                  value: 'True', label: Text('True')),
+                              ButtonSegment(
+                                  value: 'False', label: Text('False')),
+                            ],
+                            selected: {
+                              answerCtrl.text == 'False' ? 'False' : 'True'
+                            },
+                            onSelectionChanged: (s) {
+                              setDialogState(() => answerCtrl.text = s.first);
+                            },
+                          ),
+                        ],
+                      )
+                    : TextField(
+                        controller: answerCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Correct Answer *',
+                          prefixIcon: Icon(Icons.check_rounded),
+                        ),
+                      ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: reasonCtrl,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    labelText: 'Explanation (optional)',
+                    prefixIcon: Icon(Icons.info_outline_rounded),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                InputDecorator(
+                  decoration: const InputDecoration(
+                    labelText: 'Course',
+                    prefixIcon: Icon(Icons.class_outlined),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: courseId,
+                      isDense: true,
+                      isExpanded: true,
+                      items: courses
+                          .map((c) => DropdownMenuItem(
+                                value: c['id'] as String,
+                                child: Text(c['title'] as String,
+                                    overflow: TextOverflow.ellipsis),
+                              ))
+                          .toList(),
+                      onChanged: (v) {
+                        if (v != null) setDialogState(() => courseId = v);
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final question = questionCtrl.text.trim();
+                final answer = answerCtrl.text.trim();
+                if (question.isEmpty || answer.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content:
+                          const Text('Question and answer are required'),
+                      backgroundColor: cs.error,
+                    ),
+                  );
+                  return;
+                }
+                Navigator.pop(ctx);
+                final ok = await context.read<QuizProvider>().updateQuiz(
+                  quiz['quiz_id']?.toString() ??
+                      quiz['id']?.toString() ??
+                      '',
+                  {
+                    'question': question,
+                    'quiz_type': quizType,
+                    'correct_answer': answer,
+                    'reason': reasonCtrl.text.trim(),
+                    'course_id': courseId,
+                  },
+                );
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                          ok ? 'Quiz updated!' : 'Failed to update quiz'),
+                      backgroundColor: ok ? cs.primary : cs.error,
+                    ),
+                  );
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _NoResults extends StatelessWidget {
@@ -644,12 +1021,12 @@ class _NoResults extends StatelessWidget {
 class _QuizCard extends StatelessWidget {
   final Map<String, dynamic> quiz;
   final bool isTeacher;
-  final VoidCallback onDelete;
+  final VoidCallback? onManage;
 
   const _QuizCard({
     required this.quiz,
     required this.isTeacher,
-    required this.onDelete,
+    this.onManage,
   });
 
   @override
@@ -660,7 +1037,8 @@ class _QuizCard extends StatelessWidget {
     final badgeGradient = quizTypeGradient(quizType);
 
     return GestureDetector(
-      onLongPress: isTeacher ? onDelete : null,
+      onTap: isTeacher ? onManage : null,
+      onLongPress: isTeacher ? onManage : null,
       child: Container(
         margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
         padding: const EdgeInsets.all(14),

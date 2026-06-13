@@ -122,6 +122,20 @@ class AuthService {
     }
   }
 
+  /// All students (for the teacher directory / roster).
+  Future<List<Map<String, dynamic>>> getAllStudents() async {
+    try {
+      final data = await _sb
+          .from('profiles')
+          .select()
+          .eq('role', 'Student')
+          .order('username');
+      return List<Map<String, dynamic>>.from(data);
+    } catch (_) {
+      return [];
+    }
+  }
+
   Future<bool> isUserLoggedIn() async => _sb.auth.currentUser != null;
 
   // ── Profile cache helpers ───────────────────────────────────────────────────

@@ -542,9 +542,11 @@ class _AllBooksTab extends StatelessWidget {
           child: GridView.builder(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              childAspectRatio: 0.60,
+            // Small, auto-fitting cards like the Discover tab (more columns on
+            // wider screens instead of two big covers).
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 200,
+              childAspectRatio: 0.56,
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
             ),
@@ -569,9 +571,11 @@ class _AllBooksTab extends StatelessWidget {
                 courseLabel: label.isEmpty ? null : label,
                 onTap: isDownloading
                     ? () {}
-                    : () => _showDownloadDialog(context, book),
+                    : isTeacher
+                        ? () => _showBookActions(context, book, provider)
+                        : () => _showDownloadDialog(context, book),
                 onDelete: isTeacher
-                    ? () => _confirmDelete(context, book, provider)
+                    ? () => _showBookActions(context, book, provider)
                     : null,
               );
             },
@@ -656,6 +660,189 @@ class _AllBooksTab extends StatelessWidget {
             child: const Text('Delete'),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Teacher action sheet for a book: edit / download / delete.
+  void _showBookActions(
+    BuildContext context,
+    Map<String, dynamic> book,
+    BookProvider provider,
+  ) {
+    final cs = Theme.of(context).colorScheme;
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  book['book_name'] ?? 'Book',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style:
+                      const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                ),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.edit_rounded),
+              title: const Text('Edit details'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showEditBookDialog(context, book);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.download_rounded),
+              title: const Text('Download'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showDownloadDialog(context, book);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.delete_rounded, color: cs.error),
+              title: Text('Delete', style: TextStyle(color: cs.error)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _confirmDelete(context, book, provider);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Pre-filled "Edit Book" dialog (mirrors the Add dialog).
+  void _showEditBookDialog(BuildContext context, Map<String, dynamic> book) {
+    final titleCtrl =
+        TextEditingController(text: book['book_name']?.toString() ?? '');
+    final urlCtrl = TextEditingController(text: book['link']?.toString() ?? '');
+    final pictureCtrl =
+        TextEditingController(text: book['book_picture']?.toString() ?? '');
+    final courses = context.read<CourseProvider>().courses;
+    final courseIds = courses.map((c) => c['id'] as String).toSet();
+    String dialogCourse = courseIds.contains(book['course_id'])
+        ? book['course_id'] as String
+        : (courses.isNotEmpty ? courses.first['id'] as String : 'course-001');
+    final cs = Theme.of(context).colorScheme;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Edit Book'),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: titleCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Book Title *',
+                    prefixIcon: Icon(Icons.title_rounded),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: urlCtrl,
+                  keyboardType: TextInputType.url,
+                  decoration: const InputDecoration(
+                    labelText: 'PDF URL *',
+                    prefixIcon: Icon(Icons.link_rounded),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: pictureCtrl,
+                  keyboardType: TextInputType.url,
+                  decoration: const InputDecoration(
+                    labelText: 'Cover Image URL (optional)',
+                    prefixIcon: Icon(Icons.image_outlined),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                InputDecorator(
+                  decoration: const InputDecoration(
+                    labelText: 'Course Category *',
+                    prefixIcon: Icon(Icons.class_outlined),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: dialogCourse,
+                      isDense: true,
+                      isExpanded: true,
+                      items: courses
+                          .map((c) => DropdownMenuItem(
+                                value: c['id'] as String,
+                                child: Text(c['title'] as String,
+                                    overflow: TextOverflow.ellipsis),
+                              ))
+                          .toList(),
+                      onChanged: (v) {
+                        if (v != null) setDialogState(() => dialogCourse = v);
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final title = titleCtrl.text.trim();
+                final url = urlCtrl.text.trim();
+                if (title.isEmpty || url.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Title and URL are required'),
+                      backgroundColor: cs.error,
+                    ),
+                  );
+                  return;
+                }
+                Navigator.pop(ctx);
+                final ok = await context.read<BookProvider>().updateBook(
+                  book['book_id']?.toString() ?? '',
+                  {
+                    'book_name': title,
+                    'link': url,
+                    'book_picture': pictureCtrl.text.trim(),
+                    'course_id': dialogCourse,
+                  },
+                );
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                          ok ? 'Book updated!' : 'Failed to update book'),
+                      backgroundColor: ok ? cs.primary : cs.error,
+                    ),
+                  );
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        ),
       ),
     );
   }

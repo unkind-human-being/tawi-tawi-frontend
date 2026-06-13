@@ -235,6 +235,20 @@ class QuizProvider extends ChangeNotifier {
     } catch (_) { return false; }
   }
 
+  Future<bool> updateQuiz(String quizId, Map<String, dynamic> data) async {
+    try {
+      final success = await _apiService.updateQuiz(quizId, data);
+      if (success) {
+        final i = _quizzes.indexWhere((q) => (q['quiz_id'] ?? q['id']) == quizId);
+        if (i != -1) {
+          _quizzes[i] = {..._quizzes[i], ...data};
+          notifyListeners();
+        }
+      }
+      return success;
+    } catch (_) { return false; }
+  }
+
   List<Map<String, dynamic>> getQuizzesByCourse(String courseId) {
     return _quizzes
         .where((quiz) => (quiz['course_id'] ?? '') == courseId)

@@ -136,6 +136,17 @@ class ApiService {
     }
   }
 
+  /// Edits an existing book (teachers only — enforced by Supabase RLS).
+  /// Only the keys present in [data] are changed.
+  Future<bool> updateBook(String bookId, Map<String, dynamic> data) async {
+    try {
+      await _sb.from('books').update(data).eq('book_id', bookId);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<Map<String, dynamic>?> addQuiz(Map<String, dynamic> data) async {
     try {
       final res = await _sb.from('quizzes').insert(data).select().single();
@@ -148,6 +159,17 @@ class ApiService {
   Future<bool> deleteQuiz(String quizId) async {
     try {
       await _sb.from('quizzes').delete().eq('quiz_id', quizId);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Edits an existing quiz (teachers only — enforced by Supabase RLS).
+  /// Only the keys present in [data] are changed.
+  Future<bool> updateQuiz(String quizId, Map<String, dynamic> data) async {
+    try {
+      await _sb.from('quizzes').update(data).eq('quiz_id', quizId);
       return true;
     } catch (_) {
       return false;

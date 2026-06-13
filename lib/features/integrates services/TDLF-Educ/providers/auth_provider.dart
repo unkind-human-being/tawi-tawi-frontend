@@ -144,6 +144,10 @@ class AuthProvider extends ChangeNotifier {
     return await _authService.getAllTeachers();
   }
 
+  Future<List<Map<String, dynamic>>> getAllStudents() async {
+    return await _authService.getAllStudents();
+  }
+
   Future<void> logout() async {
     await _authService.logOut();
     _currentUser = null;
