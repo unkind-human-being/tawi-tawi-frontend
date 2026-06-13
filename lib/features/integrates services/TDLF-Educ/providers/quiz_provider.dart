@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
@@ -43,6 +44,7 @@ class QuizProvider extends ChangeNotifier {
       final db = await _dbService.database;
 
       for (var quiz in fetchedQuizzes) {
+        quiz['options'] = _parseOptions(quiz['options']); // normalize to List
         await db.insert(
           'quizzes',
           {
@@ -52,6 +54,7 @@ class QuizProvider extends ChangeNotifier {
             'correct_answer': quiz['correct_answer'] ?? '',
             'reason': quiz['reason'] ?? '',
             'course_id': quiz['course_id'] ?? '',
+            'options': jsonEncode(quiz['options']),
           },
           conflictAlgorithm: ConflictAlgorithm.replace,
         );
@@ -76,10 +79,46 @@ class QuizProvider extends ChangeNotifier {
     try {
       final db = await _dbService.database;
       final rows = await db.query('quizzes');
-      _quizzes = rows.map((r) => Map<String, dynamic>.from(r)).toList();
+      _quizzes = rows.map((r) {
+        final m = Map<String, dynamic>.from(r);
+        m['options'] = _parseOptions(m['options']);
+        return m;
+      }).toList();
     } catch (_) {
       // No cache yet.
     }
+  }
+
+  /// Normalizes a quiz's `options` (jsonb List from Supabase, or a JSON string
+  /// from the SQLite cache) into a plain `List<String>`.
+  List<String> _parseOptions(dynamic raw) {
+    if (raw is List) return raw.map((e) => e.toString()).toList();
+    if (raw is String && raw.trim().isNotEmpty) {
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is List) return decoded.map((e) => e.toString()).toList();
+      } catch (_) {}
+    }
+    return const [];
+  }
+
+  /// Grades one answer. Enumeration passes when every expected item appears in
+  /// the user's answer (order/extra items ignored); all other types are an
+  /// exact, case-insensitive, trimmed match.
+  bool _isCorrect(Map<String, dynamic> quiz, String userAnswer) {
+    final type = (quiz['quiz_type'] ?? '').toString();
+    final correct = (quiz['correct_answer'] ?? '').toString();
+    if (type == 'enumeration') {
+      Set<String> items(String s) => s
+          .split(RegExp(r'[,\n;]'))
+          .map((e) => e.trim().toLowerCase())
+          .where((e) => e.isNotEmpty)
+          .toSet();
+      final expected = items(correct);
+      final given = items(userAnswer);
+      return expected.isNotEmpty && expected.every(given.contains);
+    }
+    return userAnswer.trim().toLowerCase() == correct.trim().toLowerCase();
   }
 
   Future<void> loadQuizHistory(String userId) async {
@@ -141,8 +180,7 @@ class QuizProvider extends ChangeNotifier {
       for (var quiz in _activeQuizzes) {
         final quizId = quiz['quiz_id'] ?? quiz['id'];
         final userAnswer = _userAnswers[quizId] ?? '';
-        final isCorrect = userAnswer.trim().toLowerCase() ==
-            (quiz['correct_answer'] ?? '').toString().trim().toLowerCase();
+        final isCorrect = _isCorrect(quiz, userAnswer);
 
         if (isCorrect) correctAnswers++;
 

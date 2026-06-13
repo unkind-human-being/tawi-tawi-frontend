@@ -82,6 +82,7 @@ class DatabaseService {
         correct_answer TEXT NOT NULL,
         reason TEXT,
         course_id TEXT NOT NULL,
+        options TEXT DEFAULT '',
         FOREIGN KEY (course_id) REFERENCES courses(id)
       )
     ''');
@@ -112,6 +113,9 @@ class DatabaseService {
       await db.execute("ALTER TABLE users ADD COLUMN full_name TEXT DEFAULT ''");
       await db.execute("ALTER TABLE users ADD COLUMN student_id TEXT DEFAULT ''");
       await db.execute("ALTER TABLE users ADD COLUMN grade_level TEXT DEFAULT ''");
+    }
+    if (oldVersion < 5) {
+      await db.execute("ALTER TABLE quizzes ADD COLUMN options TEXT DEFAULT ''");
     }
   }
 

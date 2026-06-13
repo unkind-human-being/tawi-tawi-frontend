@@ -7,6 +7,31 @@ import '../config/app_config.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass.dart';
 
+// ── Quiz type helpers (shared across the quiz UI) ───────────────────────────
+String quizTypeLabel(String t) => switch (t) {
+      'true_false' => 'True / False',
+      'multiple_choice' => 'Multiple Choice',
+      'fill_blank' => 'Fill in the Blank',
+      'enumeration' => 'Enumeration',
+      _ => 'Open Ended',
+    };
+
+IconData quizTypeIcon(String t) => switch (t) {
+      'true_false' => Icons.toggle_on_rounded,
+      'multiple_choice' => Icons.list_alt_rounded,
+      'fill_blank' => Icons.short_text_rounded,
+      'enumeration' => Icons.format_list_numbered_rounded,
+      _ => Icons.edit_note_rounded,
+    };
+
+List<Color> quizTypeGradient(String t) => switch (t) {
+      'true_false' => const [AppPalette.violet, AppPalette.magenta],
+      'multiple_choice' => const [AppPalette.indigo, AppPalette.violet],
+      'fill_blank' => const [AppPalette.cyan, AppPalette.indigo],
+      'enumeration' => const [AppPalette.purple, AppPalette.pink],
+      _ => const [AppPalette.indigo, AppPalette.cyan],
+    };
+
 class QuizScreen extends StatefulWidget {
   const QuizScreen({super.key});
 
@@ -331,15 +356,21 @@ class _AvailableTabState extends State<_AvailableTab> {
               ),
               // Question-type filter
               SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-                  child: Row(
+                child: SizedBox(
+                  height: 40,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
                     children: [
                       _buildTypeChip(cs, 'all', 'All Types'),
                       const SizedBox(width: 8),
+                      _buildTypeChip(cs, 'multiple_choice', 'Multiple Choice'),
+                      const SizedBox(width: 8),
                       _buildTypeChip(cs, 'true_false', 'True / False'),
                       const SizedBox(width: 8),
-                      _buildTypeChip(cs, 'open_ended', 'Open Ended'),
+                      _buildTypeChip(cs, 'fill_blank', 'Fill in the Blank'),
+                      const SizedBox(width: 8),
+                      _buildTypeChip(cs, 'enumeration', 'Enumeration'),
                     ],
                   ),
                 ),
@@ -625,11 +656,8 @@ class _QuizCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final decor = AppDecoration.of(context);
-    final quizType = quiz['quiz_type'] ?? 'open_ended';
-    final isTF = quizType == 'true_false';
-    final badgeGradient = isTF
-        ? const [AppPalette.violet, AppPalette.magenta]
-        : const [AppPalette.indigo, AppPalette.cyan];
+    final quizType = (quiz['quiz_type'] ?? 'open_ended').toString();
+    final badgeGradient = quizTypeGradient(quizType);
 
     return GestureDetector(
       onLongPress: isTeacher ? onDelete : null,
@@ -645,7 +673,7 @@ class _QuizCard extends StatelessWidget {
         child: Row(
           children: [
             GradientIconBadge(
-              icon: isTF ? Icons.toggle_on_rounded : Icons.edit_note_rounded,
+              icon: quizTypeIcon(quizType),
               size: 42,
               iconSize: 22,
               radius: 13,
@@ -670,15 +698,15 @@ class _QuizCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                     decoration: BoxDecoration(
-                      color: isTF ? cs.secondaryContainer : cs.tertiaryContainer,
+                      color: badgeGradient.first.withValues(alpha: 0.14),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
-                      isTF ? 'True / False' : 'Open Ended',
+                      quizTypeLabel(quizType),
                       style: TextStyle(
                         fontSize: 10,
-                        color: isTF ? cs.onSecondaryContainer : cs.onTertiaryContainer,
-                        fontWeight: FontWeight.w600,
+                        color: badgeGradient.first,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
@@ -944,7 +972,10 @@ class _QuestionScreen extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final decor = AppDecoration.of(context);
     final quizId = quiz['quiz_id'] ?? quiz['id'] ?? '';
-    final isTrueFalse = (quiz['quiz_type'] ?? '') == 'true_false';
+    final quizType = (quiz['quiz_type'] ?? 'open_ended').toString();
+    final options = quiz['options'] is List
+        ? (quiz['options'] as List).map((e) => e.toString()).toList()
+        : <String>[];
     final selectedAnswer = provider.userAnswers[quizId];
 
     return SafeArea(
@@ -1027,7 +1058,7 @@ class _QuestionScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    if (isTrueFalse) ...[
+                    if (quizType == 'true_false') ...[
                       _TrueFalseButton(
                         label: 'True',
                         icon: Icons.check_circle_rounded,
@@ -1043,7 +1074,44 @@ class _QuestionScreen extends StatelessWidget {
                         cs: cs,
                         onTap: () => provider.answerQuestion(quizId, 'False'),
                       ),
+                    ] else if (quizType == 'multiple_choice') ...[
+                      for (final opt in options) ...[
+                        _TrueFalseButton(
+                          label: opt,
+                          icon: selectedAnswer == opt
+                              ? Icons.radio_button_checked_rounded
+                              : Icons.radio_button_unchecked_rounded,
+                          selected: selectedAnswer == opt,
+                          cs: cs,
+                          onTap: () => provider.answerQuestion(quizId, opt),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                    ] else if (quizType == 'enumeration') ...[
+                      Text(
+                        'Your Answers',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: cs.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'List each item, separated by commas or new lines.',
+                        style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: answerCtrl..text = selectedAnswer ?? '',
+                        maxLines: 4,
+                        decoration: const InputDecoration(
+                          hintText: 'e.g. item one, item two, item three',
+                        ),
+                        onChanged: (v) => provider.answerQuestion(quizId, v),
+                      ),
                     ] else ...[
+                      // fill_blank / open_ended
                       Text(
                         'Your Answer',
                         style: TextStyle(
@@ -1054,8 +1122,7 @@ class _QuestionScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       TextField(
-                        controller: answerCtrl
-                          ..text = selectedAnswer ?? '',
+                        controller: answerCtrl..text = selectedAnswer ?? '',
                         decoration: const InputDecoration(
                           hintText: 'Type your answer here...',
                         ),
