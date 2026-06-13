@@ -7,18 +7,46 @@ class AuthProvider extends ChangeNotifier {
   Map<String, dynamic>? _currentUser;
   bool _isLoading = false;
   String? _errorMessage;
+  bool _isGuest = false;
 
   Map<String, dynamic>? get currentUser => _currentUser;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   bool get isLoggedIn => _currentUser != null;
 
-  AuthProvider() {
-    _initializeUser();
+  /// True when the module is opened embedded in a host app (e.g. Tawi-Tawi)
+  /// that already authenticated the user, so our own login is skipped and the
+  /// session is a read-only guest.
+  bool get isGuest => _isGuest;
+
+  /// [guest] is set by the host launcher (TdlfEducApp(guestMode: true)) so the
+  /// module opens straight into its content with no sign-in/sign-up screen.
+  AuthProvider({bool guest = false}) {
+    if (guest) {
+      _seedGuest();
+    } else {
+      _initializeUser();
+    }
   }
 
   Future<void> _initializeUser() async {
     _currentUser = await _authService.getCurrentUser();
+    notifyListeners();
+  }
+
+  /// Synthetic, read-only identity used when embedded in a host super-app.
+  void _seedGuest() {
+    _isGuest = true;
+    _currentUser = {
+      'id': 'guest',
+      'username': 'Guest',
+      'full_name': 'Guest',
+      'email': '',
+      'role': 'Student',
+      'course': '',
+      'student_id': '',
+      'grade_level': '',
+    };
     notifyListeners();
   }
 

@@ -459,10 +459,16 @@ class _SidebarUserCard extends StatelessWidget {
                 ),
               ),
               IconButton(
-                tooltip: 'Logout',
-                icon: Icon(Icons.logout_rounded,
-                    size: 20, color: cs.onSurfaceVariant),
-                onPressed: () => _confirmLogout(context),
+                tooltip: auth.isGuest ? 'Exit' : 'Logout',
+                icon: Icon(
+                    auth.isGuest
+                        ? Icons.arrow_back_rounded
+                        : Icons.logout_rounded,
+                    size: 20,
+                    color: cs.onSurfaceVariant),
+                onPressed: () => auth.isGuest
+                    ? Navigator.of(context, rootNavigator: true).maybePop()
+                    : _confirmLogout(context),
               ),
             ],
           ),
