@@ -129,7 +129,19 @@ class _TdlfEducRoot extends StatelessWidget {
           themeMode:
               themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
           home: authProvider.isLoggedIn
-              ? const HomeScreen()
+              ? (authProvider.isGuest
+                  // Embedded in a host app: the Android back gesture/button
+                  // returns to the host instead of doing nothing.
+                  ? PopScope(
+                      canPop: false,
+                      onPopInvokedWithResult: (didPop, _) {
+                        if (!didPop) {
+                          Navigator.of(context, rootNavigator: true).maybePop();
+                        }
+                      },
+                      child: const HomeScreen(),
+                    )
+                  : const HomeScreen())
               : const LoginScreen(),
           routes: {
             '/home': (context) => const HomeScreen(),
