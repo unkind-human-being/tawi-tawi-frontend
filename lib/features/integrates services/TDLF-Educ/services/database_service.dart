@@ -55,6 +55,7 @@ class DatabaseService {
         name TEXT NOT NULL,
         link TEXT NOT NULL,
         picture_url TEXT,
+        course_id TEXT DEFAULT '',
         downloaded_path TEXT,
         is_downloaded BOOLEAN DEFAULT 0,
         downloaded_at TEXT
@@ -116,6 +117,16 @@ class DatabaseService {
     }
     if (oldVersion < 5) {
       await db.execute("ALTER TABLE quizzes ADD COLUMN options TEXT DEFAULT ''");
+    }
+    if (oldVersion < 6) {
+      // Early v5 installs created the books table without course_id (it was
+      // only added via the v<3 upgrade path). Add it here; ignore the error if
+      // the column already exists from that earlier migration.
+      try {
+        await db.execute("ALTER TABLE books ADD COLUMN course_id TEXT DEFAULT ''");
+      } catch (_) {
+        // Column already present — nothing to do.
+      }
     }
   }
 

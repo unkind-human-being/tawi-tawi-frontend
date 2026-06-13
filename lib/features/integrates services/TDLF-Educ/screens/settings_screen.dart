@@ -248,6 +248,9 @@ class _LogoutTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Embedded in a host app (Tawi-Tawi): no auth here, so "Logout" becomes
+    // "Exit" which simply returns to the host.
+    final isGuest = context.watch<AuthProvider>().isGuest;
     return Container(
       margin: const EdgeInsets.only(top: 6),
       decoration: BoxDecoration(
@@ -268,10 +271,11 @@ class _LogoutTile extends StatelessWidget {
             ),
             borderRadius: BorderRadius.circular(13),
           ),
-          child: const Icon(Icons.logout_rounded, color: Colors.white, size: 20),
+          child: Icon(isGuest ? Icons.arrow_back_rounded : Icons.logout_rounded,
+              color: Colors.white, size: 20),
         ),
         title: Text(
-          'Logout',
+          isGuest ? 'Exit' : 'Logout',
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
@@ -279,13 +283,19 @@ class _LogoutTile extends StatelessWidget {
           ),
         ),
         subtitle: Text(
-          'Sign out of your account',
+          isGuest ? 'Return to Tawi-Tawi' : 'Sign out of your account',
           style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
         ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        onTap: () => _confirmLogout(context),
+        onTap: () =>
+            isGuest ? _exitModule(context) : _confirmLogout(context),
       ),
     );
+  }
+
+  /// Leaves the embedded module and returns to the host super-app.
+  void _exitModule(BuildContext context) {
+    Navigator.of(context, rootNavigator: true).maybePop();
   }
 
   void _confirmLogout(BuildContext context) {

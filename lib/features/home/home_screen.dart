@@ -121,7 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
         );
         break;
       case 4:
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TdlfEducApp()));
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TdlfEducApp(guestMode: true)));
         break;
       case 5:
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const zentromart.ZentromartLinkScreen()));
@@ -225,7 +225,7 @@ class _HomeScreenState extends State<HomeScreen> {
         icon: Icons.school_rounded,
         color: const Color(0xFF3B82F6),
         isDark: isDark,
-        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TdlfEducApp())),
+        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TdlfEducApp(guestMode: true))),
       ),
       _buildServiceItem(
         title: 'ZentroMart',

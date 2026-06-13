@@ -52,5 +52,5 @@ class AppConfig {
   
   // Database
   static const String databaseName = 'tdlf_educ.db';
-  static const int databaseVersion = 5;
+  static const int databaseVersion = 6;
 }

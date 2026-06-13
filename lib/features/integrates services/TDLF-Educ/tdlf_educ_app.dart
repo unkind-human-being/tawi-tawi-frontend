@@ -64,7 +64,13 @@ Future<void> ensureTdlfEducInitialized() async {
 ///   Navigator.push(context,
 ///       MaterialPageRoute(builder: (_) => const TdlfEducApp()));
 class TdlfEducApp extends StatefulWidget {
-  const TdlfEducApp({super.key});
+  /// When `true`, the module skips its own sign-in/sign-up and opens straight
+  /// into the content as a read-only guest. Use this when launching from a host
+  /// super-app (e.g. Tawi-Tawi) that has already authenticated the user.
+  /// Defaults to `false` so the standalone app keeps its own login.
+  final bool guestMode;
+
+  const TdlfEducApp({super.key, this.guestMode = false});
 
   @override
   State<TdlfEducApp> createState() => _TdlfEducAppState();
@@ -93,7 +99,8 @@ class _TdlfEducAppState extends State<TdlfEducApp> {
         return MultiProvider(
           providers: [
             ChangeNotifierProvider(create: (_) => ThemeProvider()),
-            ChangeNotifierProvider(create: (_) => AuthProvider()),
+            ChangeNotifierProvider(
+                create: (_) => AuthProvider(guest: widget.guestMode)),
             ChangeNotifierProvider(create: (_) => BookProvider()),
             ChangeNotifierProvider(create: (_) => QuizProvider()),
             ChangeNotifierProvider(create: (_) => CourseProvider()),
@@ -122,7 +129,19 @@ class _TdlfEducRoot extends StatelessWidget {
           themeMode:
               themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
           home: authProvider.isLoggedIn
-              ? const HomeScreen()
+              ? (authProvider.isGuest
+                  // Embedded in a host app: the Android back gesture/button
+                  // returns to the host instead of doing nothing.
+                  ? PopScope(
+                      canPop: false,
+                      onPopInvokedWithResult: (didPop, _) {
+                        if (!didPop) {
+                          Navigator.of(context, rootNavigator: true).maybePop();
+                        }
+                      },
+                      child: const HomeScreen(),
+                    )
+                  : const HomeScreen())
               : const LoginScreen(),
           routes: {
             '/home': (context) => const HomeScreen(),
