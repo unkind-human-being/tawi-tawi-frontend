@@ -28,31 +28,47 @@ class _LakbaiGatewayScreenState extends State<LakbaiGatewayScreen> {
 
     if (!mounted) return;
 
-    final authProvider = Provider.of<LakbaiAuthProvider>(context, listen: false);
-    await authProvider.initAuth();
+    final lakbaiAuth = Provider.of<LakbaiAuthProvider>(context, listen: false);
+    final tawiAuth = Provider.of<tawi_auth.AuthProvider>(context, listen: false);
+
+    await lakbaiAuth.initAuth();
 
     if (!mounted) return;
 
-    if (authProvider.user != null) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const LakbaiMainLayout()),
-      );
-    } else {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const LakbaiSignupScreen()),
-      );
+    final tawiEmail = tawiAuth.user?.email;
+
+    // ✅ AUTO-LOGIN RECOVERY: If Kawman wiped the storage, silently recover the session!
+    if (lakbaiAuth.user == null && tawiEmail != null) {
+      await lakbaiAuth.attemptSilentRecovery(tawiEmail);
     }
+
+    // ✅ AUTO-LOGIN LOGIC
+    if (lakbaiAuth.user != null) {
+      if (tawiEmail != null && tawiEmail == lakbaiAuth.user!['email']) {
+        // Exact match! Bypass the login screen and go straight to Home.
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const LakbaiMainLayout()),
+        );
+        return;
+      } else {
+        // Different user logged into Tawi-Tawi. Clear the old LakbAi session.
+        await lakbaiAuth.logout();
+      }
+    }
+
+    // ❌ No matching account found. Go to Signup Screen.
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const LakbaiSignupScreen()),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // ✅ UPGRADE: Replaced solid color with a Stack containing your hero background
       body: Stack(
         children: [
-          // Beautiful Background Image with Dark Overlay
           Positioned.fill(
             child: Image.asset(
               'assets/lakbai/hero-bg.jpg',
@@ -66,7 +82,6 @@ class _LakbaiGatewayScreenState extends State<LakbaiGatewayScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // ✅ UPGRADE: Used your actual white logo instead of a basic icon
                 Image.asset(
                   'assets/lakbai/logo-white.png', 
                   height: 100,

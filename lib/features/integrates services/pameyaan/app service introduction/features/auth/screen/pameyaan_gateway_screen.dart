@@ -11,7 +11,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../commuter/screens/commuter_app_screen.dart';
 import '../../driver/screens/driver_dashboard_screen.dart'; 
-import 'role_selection_screen.dart'; // Added in case you want to route unregistered users here later
+import 'role_selection_screen.dart'; 
 
 class PameyaanGatewayScreen extends StatefulWidget {
   final bool isDriver; 
@@ -52,6 +52,10 @@ class _PameyaanGatewayScreenState extends State<PameyaanGatewayScreen> {
       }
 
       const String graphqlUrl = 'https://tawi-tawi-backend.onrender.com/graphql';
+      
+      print("[PameyaanGateway] Starting Handshake...");
+      print("[PameyaanGateway] URL: $graphqlUrl");
+      print("[PameyaanGateway] Using Token: ${mainToken.substring(0, 10)}...");
 
       final verifyResponse = await http.post(
         Uri.parse(graphqlUrl),
@@ -65,10 +69,9 @@ class _PameyaanGatewayScreenState extends State<PameyaanGatewayScreen> {
               verifyServiceAccess(serviceName: \$serviceName) {
                 hasAccess
                 requiresRegistration
-                role # <-- ADDED: Requesting the user's role from the backend
               }
             }
-          ''',
+          ''', 
           'variables': {
             'serviceName': 'transportation',
           },
@@ -76,6 +79,9 @@ class _PameyaanGatewayScreenState extends State<PameyaanGatewayScreen> {
       );
 
       if (!mounted) return;
+
+      print("[PameyaanGateway] STATUS CODE: ${verifyResponse.statusCode}");
+      print("[PameyaanGateway] RAW RESPONSE: ${verifyResponse.body}");
 
       final verifyData = jsonDecode(verifyResponse.body);
       
@@ -86,10 +92,14 @@ class _PameyaanGatewayScreenState extends State<PameyaanGatewayScreen> {
       final accessData = verifyData['data']['verifyServiceAccess'];
       bool isLinked = accessData['hasAccess'] ?? false;
       bool requiresRegistration = accessData['requiresRegistration'] ?? false;
-      String? userRole = accessData['role']; // Will be 'commuter' or 'driver'
+      
+      // This will safely resolve to null since we are no longer querying it, 
+      // allowing the widget.isDriver fallback to take over.
+      String? userRole = accessData['role']; 
 
       // SCENARIO A: Account Exists (Check Commuter vs Driver)
       if (isLinked) {
+        print("[PameyaanGateway] Access Granted. Routing as: ${userRole ?? (widget.isDriver ? 'driver' : 'commuter')}");
         ApiClient.instance.options.headers['Authorization'] = 'Bearer $mainToken';
         
         // DYNAMIC ROUTING: Route based on their actual database role
@@ -108,6 +118,8 @@ class _PameyaanGatewayScreenState extends State<PameyaanGatewayScreen> {
         final Map<String, dynamic> registrationPayload = widget.isDriver 
             ? {"role": "driver", "franchise_number": mainUser.id} 
             : {"discount_status": "Regular"};
+
+        print("[PameyaanGateway] Auto-Registering for Transport Service...");
 
         final regResponse = await http.post(
           Uri.parse(graphqlUrl),
@@ -130,6 +142,8 @@ class _PameyaanGatewayScreenState extends State<PameyaanGatewayScreen> {
           }),
         );
 
+        print("🚨 [PameyaanGateway] REGISTRATION RESPONSE: ${regResponse.body}");
+
         final regData = jsonDecode(regResponse.body);
         if (regData['errors'] != null) {
            throw Exception(regData['errors'][0]['message']);
@@ -150,6 +164,8 @@ class _PameyaanGatewayScreenState extends State<PameyaanGatewayScreen> {
         }
       }
     } catch (e) {
+      print("❌ [PameyaanGateway] HANDSHAKE FATAL ERROR: $e");
+      
       setState(() {
         _isChecking = false;
         _statusMessage = 'Handshake failed.\nEnsure TRANSPORT_SERVICE_URL is set in Render.\n${e.toString()}';
@@ -171,6 +187,7 @@ class _PameyaanGatewayScreenState extends State<PameyaanGatewayScreen> {
       ),
     );
   }
+
   void _routeToCommuter(String? name, String userId, String? email) {
     final safeName = name ?? 'Citizen'; // Fallback if name is missing
     
