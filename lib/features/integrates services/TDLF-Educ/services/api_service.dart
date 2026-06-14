@@ -54,6 +54,16 @@ class ApiService {
     }
   }
 
+  /// Renames/edits a course (teachers only — enforced by Supabase RLS).
+  Future<bool> updateCourse(String courseId, Map<String, dynamic> data) async {
+    try {
+      await _sb.from('courses').update(data).eq('id', courseId);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Downloads a book PDF and returns the local file path, or null on failure.
   ///
   /// [onProgress] reports (received, total) bytes. When [validatePdf] is true the
@@ -181,6 +191,15 @@ class ApiService {
       await _sb.from('quiz_results').insert(data);
       return true;
     } catch (_) {
+      // Fallback for projects whose quiz_results table doesn't have the
+      // course_id column yet — submission must still succeed.
+      if (data.containsKey('course_id')) {
+        try {
+          final copy = Map<String, dynamic>.from(data)..remove('course_id');
+          await _sb.from('quiz_results').insert(copy);
+          return true;
+        } catch (_) {}
+      }
       return false;
     }
   }

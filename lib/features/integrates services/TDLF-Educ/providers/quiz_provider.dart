@@ -135,6 +135,30 @@ class QuizProvider extends ChangeNotifier {
     } catch (_) {}
   }
 
+  // ── "Already answered" tracking ─────────────────────────────────────────────
+  // A student can't retake a quiz they've already submitted. Tracked from the
+  // local quiz_attempts table (per device/account).
+  final Set<String> _answeredQuizIds = {};
+  bool isQuizAnswered(String quizId) => _answeredQuizIds.contains(quizId);
+
+  Future<void> loadAnsweredQuizzes(String userId) async {
+    try {
+      final db = await _dbService.database;
+      final rows = await db.query(
+        'quiz_attempts',
+        columns: ['quiz_id'],
+        where: 'user_id = ?',
+        whereArgs: [userId],
+      );
+      _answeredQuizIds
+        ..clear()
+        ..addAll(rows
+            .map((r) => (r['quiz_id'] ?? '').toString())
+            .where((s) => s.isNotEmpty));
+      notifyListeners();
+    } catch (_) {}
+  }
+
   void prepareQuiz(List<Map<String, dynamic>> quizzes) {
     _activeQuizzes = List.from(quizzes);
     _currentQuestionIndex = 0;
@@ -192,6 +216,7 @@ class QuizProvider extends ChangeNotifier {
           'is_correct': isCorrect ? 1 : 0,
           'attempted_at': DateTime.now().toIso8601String(),
         });
+        _answeredQuizIds.add(quizId.toString()); // lock from being retaken
       }
 
       _quizScore = _activeQuizzes.isNotEmpty ? (correctAnswers / _activeQuizzes.length) * 100 : 0;
@@ -204,6 +229,7 @@ class QuizProvider extends ChangeNotifier {
         'score': _quizScore,
         'total_questions': _activeQuizzes.length,
         'passed': _quizScore >= AppConfig.passingScore,
+        'course_id': courseId, // lets teachers see only their course's results
         'submitted_at': DateTime.now().toIso8601String(),
       });
     } catch (e) {

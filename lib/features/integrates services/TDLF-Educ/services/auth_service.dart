@@ -52,10 +52,62 @@ class AuthService {
       }
       return null;
     } on AuthException catch (e) {
-      return e.message;
-    } catch (_) {
-      return 'Sign up failed. Check your internet connection and try again.';
+      return _friendlyAuthError(e, signingUp: true);
+    } catch (e) {
+      return _friendlyAuthError(e, signingUp: true);
     }
+  }
+
+  /// Translates raw Supabase/network auth errors into clear, actionable
+  /// messages for users (instead of cryptic text like
+  /// "Database error saving new user").
+  String _friendlyAuthError(Object e, {required bool signingUp}) {
+    final msg = (e is AuthException ? e.message : e.toString()).toLowerCase();
+
+    // The sign-up trigger throws on a duplicate username (the only unique
+    // constraint), which Supabase surfaces as "Database error saving new user".
+    if (msg.contains('saving new user') ||
+        msg.contains('unexpected_failure') ||
+        msg.contains('duplicate key') ||
+        msg.contains('profiles_username_key')) {
+      return 'That username is already taken. Please choose a different username.';
+    }
+    if (msg.contains('already registered') ||
+        msg.contains('already been registered') ||
+        msg.contains('user already exists')) {
+      return 'An account with this email already exists. Try signing in instead.';
+    }
+    if (msg.contains('invalid login') || msg.contains('invalid credentials')) {
+      return 'Incorrect email or password.';
+    }
+    if (msg.contains('email not confirmed')) {
+      return 'Your email isn\'t confirmed yet. Check your inbox, or ask your '
+          'admin to turn off email confirmation.';
+    }
+    if (msg.contains('password') &&
+        (msg.contains('at least') || msg.contains('should be') || msg.contains('weak'))) {
+      return 'Password is too short — use at least 6 characters.';
+    }
+    if (msg.contains('valid email') ||
+        msg.contains('validate email') ||
+        msg.contains('invalid email') ||
+        msg.contains('invalid format')) {
+      return 'Please enter a valid email address.';
+    }
+    if (msg.contains('rate limit') || msg.contains('too many')) {
+      return 'Too many attempts. Please wait a moment and try again.';
+    }
+    if (msg.contains('socket') ||
+        msg.contains('network') ||
+        msg.contains('failed host') ||
+        msg.contains('timeout') ||
+        msg.contains('connection')) {
+      return 'Couldn\'t reach the server. Check your internet connection and try again.';
+    }
+    // Sensible fallback.
+    return signingUp
+        ? 'Sign up failed. Please try again with a different username or email.'
+        : 'Could not sign in. Please try again.';
   }
 
   /// Signs in. Returns `null` on success, otherwise an error message.
@@ -68,13 +120,13 @@ class AuthService {
         email: email,
         password: password,
       );
-      if (res.user == null) return 'Invalid email or password';
+      if (res.user == null) return 'Incorrect email or password.';
       await _fetchAndCacheProfile(res.user!.id);
       return null;
     } on AuthException catch (e) {
-      return e.message;
-    } catch (_) {
-      return 'Could not sign in. Check your internet connection.';
+      return _friendlyAuthError(e, signingUp: false);
+    } catch (e) {
+      return _friendlyAuthError(e, signingUp: false);
     }
   }
 

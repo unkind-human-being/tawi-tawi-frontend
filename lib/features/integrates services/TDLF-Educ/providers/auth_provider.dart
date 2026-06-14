@@ -34,6 +34,15 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Re-fetches the current session's profile from the cloud (or cache).
+  /// Used by the Profile screen's pull-to-refresh / reload so a stalled or
+  /// not-yet-loaded session can be recovered without restarting the app.
+  Future<void> refreshUser() async {
+    if (_isGuest) return; // guest identity is synthetic; nothing to refresh
+    _currentUser = await _authService.getCurrentUser();
+    notifyListeners();
+  }
+
   /// Synthetic, read-only identity used when embedded in a host super-app.
   void _seedGuest() {
     _isGuest = true;

@@ -55,7 +55,9 @@ class _QuizScreenState extends State<QuizScreen>
       if (!_isTeacher) {
         final auth = context.read<AuthProvider>();
         if (auth.currentUser != null) {
-          context.read<QuizProvider>().loadQuizHistory(auth.currentUser!['id']);
+          final uid = auth.currentUser!['id'];
+          context.read<QuizProvider>().loadQuizHistory(uid);
+          context.read<QuizProvider>().loadAnsweredQuizzes(uid);
         }
       }
     });
@@ -575,28 +577,58 @@ class _AvailableTabState extends State<_AvailableTab> {
                         ),
                         if (!widget.isTeacher) ...[
                           const SizedBox(width: 8),
-                          FilledButton.icon(
-                            onPressed: () {
-                              context
-                                  .read<QuizProvider>()
-                                  .prepareQuiz(entry.value);
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                    builder: (_) => const QuizTakingScreen()),
+                          Builder(builder: (context) {
+                            // Only quizzes the student hasn't answered yet are
+                            // re-takeable; answered ones are excluded.
+                            final unanswered = entry.value
+                                .where((q) => !provider.isQuizAnswered(
+                                    (q['quiz_id'] ?? q['id'] ?? '').toString()))
+                                .toList();
+                            if (unanswered.isEmpty) {
+                              return Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: cs.primaryContainer,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.check_circle_rounded,
+                                          size: 14,
+                                          color: cs.onPrimaryContainer),
+                                      const SizedBox(width: 4),
+                                      Text('Completed',
+                                          style: TextStyle(
+                                              fontSize: 12,
+                                              color: cs.onPrimaryContainer,
+                                              fontWeight: FontWeight.w600)),
+                                    ]),
                               );
-                            },
-                            icon: const Icon(Icons.play_arrow_rounded,
-                                size: 16),
-                            label: const Text('Start',
-                                style: TextStyle(fontSize: 12)),
-                            style: FilledButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 6),
-                              minimumSize: Size.zero,
-                              tapTargetSize:
-                                  MaterialTapTargetSize.shrinkWrap,
-                            ),
-                          ),
+                            }
+                            return FilledButton.icon(
+                              onPressed: () {
+                                provider.prepareQuiz(unanswered);
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                      builder: (_) =>
+                                          const QuizTakingScreen()),
+                                );
+                              },
+                              icon: const Icon(Icons.play_arrow_rounded,
+                                  size: 16),
+                              label: const Text('Start',
+                                  style: TextStyle(fontSize: 12)),
+                              style: FilledButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 6),
+                                minimumSize: Size.zero,
+                                tapTargetSize:
+                                    MaterialTapTargetSize.shrinkWrap,
+                              ),
+                            );
+                          }),
                         ],
                       ],
                     ),
@@ -609,6 +641,10 @@ class _AvailableTabState extends State<_AvailableTab> {
                       return _QuizCard(
                         quiz: quiz,
                         isTeacher: widget.isTeacher,
+                        answered: !widget.isTeacher &&
+                            provider.isQuizAnswered(
+                                (quiz['quiz_id'] ?? quiz['id'] ?? '')
+                                    .toString()),
                         onManage: () => _showQuizActions(context, quiz),
                       );
                     },
@@ -1021,11 +1057,13 @@ class _NoResults extends StatelessWidget {
 class _QuizCard extends StatelessWidget {
   final Map<String, dynamic> quiz;
   final bool isTeacher;
+  final bool answered;
   final VoidCallback? onManage;
 
   const _QuizCard({
     required this.quiz,
     required this.isTeacher,
+    this.answered = false,
     this.onManage,
   });
 
@@ -1092,7 +1130,26 @@ class _QuizCard extends StatelessWidget {
               ),
             ),
             if (isTeacher)
-              Icon(Icons.touch_app_rounded, size: 14, color: cs.onSurfaceVariant.withValues(alpha: 0.5)),
+              Icon(Icons.touch_app_rounded, size: 14, color: cs.onSurfaceVariant.withValues(alpha: 0.5))
+            else if (answered)
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: cs.primaryContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.check_rounded,
+                      size: 12, color: cs.onPrimaryContainer),
+                  const SizedBox(width: 3),
+                  Text('Answered',
+                      style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: cs.onPrimaryContainer)),
+                ]),
+              ),
           ],
         ),
       ),
@@ -1236,9 +1293,9 @@ class _QuizTakingScreenState extends State<QuizTakingScreen> {
   void initState() {
     super.initState();
     _answerCtrl = TextEditingController();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<QuizProvider>().resetQuiz();
-    });
+    // Do NOT resetQuiz() here: prepareQuiz() already set up this session with
+    // the chosen questions, and resetting would wipe _activeQuizzes — leaving
+    // the screen showing "No quizzes available". Reset happens on exit instead.
   }
 
   @override

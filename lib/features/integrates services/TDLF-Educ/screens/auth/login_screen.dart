@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/course_provider.dart';
 import '../../config/app_config.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/aurora_background.dart';
@@ -38,7 +39,20 @@ class _LoginScreenState extends State<LoginScreen> {
     _signupPasswordCtrl = TextEditingController();
     _fullNameCtrl = TextEditingController();
     _studentIdCtrl = TextEditingController();
+    // Load the live course list (anon-readable) so the teacher "Course You
+    // Teach" picker stays in sync with the courses managed in Books.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<CourseProvider>().fetchCourses();
+    });
   }
+
+  /// Live course titles (falls back to the built-in defaults until loaded).
+  List<String> _courseTitles(BuildContext context) => context
+      .watch<CourseProvider>()
+      .courses
+      .map((c) => (c['title'] ?? '').toString())
+      .where((t) => t.isNotEmpty)
+      .toList();
 
   @override
   void dispose() {
@@ -66,12 +80,23 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _handleSignUp() async {
     final auth = context.read<AuthProvider>();
     final isStudent = _selectedRole == 'Student';
+    // Resolve to a course that actually exists in the live list, so what gets
+    // saved matches what's shown (and what Books/Quizzes use).
+    final titles = context
+        .read<CourseProvider>()
+        .courses
+        .map((c) => (c['title'] ?? '').toString())
+        .where((t) => t.isNotEmpty)
+        .toList();
+    final teacherCourse = titles.contains(_selectedCourse)
+        ? _selectedCourse
+        : (titles.isNotEmpty ? titles.first : '');
     final success = await auth.signUp(
       username: _usernameCtrl.text.trim(),
       email: _signupEmailCtrl.text.trim(),
       password: _signupPasswordCtrl.text,
       role: _selectedRole,
-      course: _selectedRole == 'Teacher' ? _selectedCourse : '',
+      course: _selectedRole == 'Teacher' ? teacherCourse : '',
       fullName: _fullNameCtrl.text.trim(),
       studentId: isStudent ? _studentIdCtrl.text.trim() : '',
       gradeLevel: isStudent ? _selectedGrade : '',
@@ -342,29 +367,38 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         if (_selectedRole == 'Teacher') ...[
           const SizedBox(height: 14),
-          InputDecorator(
-            decoration: const InputDecoration(
-              labelText: 'Course You Teach',
-              prefixIcon: Icon(Icons.class_outlined),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: _selectedCourse,
-                isDense: true,
-                isExpanded: true,
-                borderRadius: BorderRadius.circular(16),
-                items: AppConfig.courses
-                    .map((c) => DropdownMenuItem(
-                          value: c,
-                          child: Text(c, overflow: TextOverflow.ellipsis),
-                        ))
-                    .toList(),
-                onChanged: (v) {
-                  if (v != null) setState(() => _selectedCourse = v);
-                },
+          Builder(builder: (context) {
+            final titles = _courseTitles(context);
+            // Always keep the dropdown's value among its items to avoid the
+            // "value not in items" assertion that would break the form.
+            final value = titles.contains(_selectedCourse)
+                ? _selectedCourse
+                : (titles.isNotEmpty ? titles.first : null);
+            return InputDecorator(
+              decoration: const InputDecoration(
+                labelText: 'Course You Teach',
+                prefixIcon: Icon(Icons.class_outlined),
               ),
-            ),
-          ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: value,
+                  isDense: true,
+                  isExpanded: true,
+                  borderRadius: BorderRadius.circular(16),
+                  hint: const Text('Select a course'),
+                  items: titles
+                      .map((c) => DropdownMenuItem(
+                            value: c,
+                            child: Text(c, overflow: TextOverflow.ellipsis),
+                          ))
+                      .toList(),
+                  onChanged: (v) {
+                    if (v != null) setState(() => _selectedCourse = v);
+                  },
+                ),
+              ),
+            );
+          }),
         ],
         if (_selectedRole == 'Student') ...[
           const SizedBox(height: 14),

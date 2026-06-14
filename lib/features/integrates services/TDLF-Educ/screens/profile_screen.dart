@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/quiz_provider.dart';
 import '../providers/book_provider.dart';
+import '../providers/course_provider.dart';
 import '../config/app_config.dart';
 import '../theme/app_theme.dart';
 
@@ -19,13 +20,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final auth = context.read<AuthProvider>();
-      if (auth.currentUser != null) {
-        context.read<QuizProvider>().loadQuizHistory(auth.currentUser!['id'] as String);
-      }
-      _loadTeachers();
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _refresh());
+  }
+
+  /// Reloads the session/profile, quiz history and faculty list. Used on open
+  /// and by pull-to-refresh / the reload button so a stalled or not-yet-loaded
+  /// session recovers without restarting the app.
+  Future<void> _refresh() async {
+    final auth = context.read<AuthProvider>();
+    await auth.refreshUser();
+    if (!mounted) return;
+    final user = auth.currentUser;
+    if (user != null) {
+      await context.read<QuizProvider>().loadQuizHistory(user['id'] as String);
+    }
+    await _loadTeachers();
   }
 
   Future<void> _loadTeachers() async {
@@ -41,7 +50,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final isTeacher = user['role'] == 'Teacher';
     final isStudent = user['role'] == 'Student';
     final rawCourse = user['course'] as String? ?? '';
-    String selectedCourse = AppConfig.courses.contains(rawCourse) ? rawCourse : AppConfig.courses[0];
+    // Live courses (synced with Books); keep the teacher's current course
+    // selectable even if it's no longer in the list.
+    final courseOptions = <String>[
+      ...context
+          .read<CourseProvider>()
+          .courses
+          .map((c) => (c['title'] ?? '').toString())
+          .where((t) => t.isNotEmpty),
+    ];
+    if (rawCourse.isNotEmpty && !courseOptions.contains(rawCourse)) {
+      courseOptions.insert(0, rawCourse);
+    }
+    String selectedCourse = (rawCourse.isNotEmpty && courseOptions.contains(rawCourse))
+        ? rawCourse
+        : (courseOptions.isNotEmpty ? courseOptions.first : '');
     final rawGrade = user['grade_level'] as String? ?? '';
     String selectedGrade =
         AppConfig.gradeLevels.contains(rawGrade) ? rawGrade : AppConfig.gradeLevels[0];
@@ -123,9 +146,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
-                        value: selectedCourse,
+                        value: selectedCourse.isEmpty ? null : selectedCourse,
                         isDense: true,
-                        items: AppConfig.courses
+                        isExpanded: true,
+                        hint: const Text('Select a course'),
+                        items: courseOptions
                             .map((c) => DropdownMenuItem(
                                   value: c,
                                   child: Text(c, overflow: TextOverflow.ellipsis),
@@ -183,26 +208,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Consumer<AuthProvider>(
       builder: (context, auth, _) {
         final user = auth.currentUser;
-        if (user == null) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
-        }
-        final isTeacher = user['role'] == 'Teacher';
+        final isTeacher = user?['role'] == 'Teacher';
         return Scaffold(
           appBar: AppBar(
             title: const Text('Profile'),
             actions: [
               IconButton(
-                icon: const Icon(Icons.edit_rounded),
-                tooltip: 'Edit Profile',
-                onPressed: () => _showEditDialog(context, user),
+                icon: const Icon(Icons.refresh_rounded),
+                tooltip: 'Reload',
+                onPressed: _refresh,
               ),
+              if (user != null)
+                IconButton(
+                  icon: const Icon(Icons.edit_rounded),
+                  tooltip: 'Edit Profile',
+                  onPressed: () => _showEditDialog(context, user),
+                ),
             ],
           ),
-          body: isTeacher
-              ? _buildTeacherProfile(context, user)
-              : _buildStudentProfile(context, user),
+          body: user == null
+              ? _buildLoading(context)
+              : (isTeacher
+                  ? _buildTeacherProfile(context, user)
+                  : _buildStudentProfile(context, user)),
         );
       },
+    );
+  }
+
+  /// Shown while the session/profile is still loading (or failed to load).
+  /// Pull down or tap Reload to retry without restarting the app.
+  Widget _buildLoading(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return RefreshIndicator(
+      onRefresh: _refresh,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          const SizedBox(height: 180),
+          const Center(child: CircularProgressIndicator()),
+          const SizedBox(height: 16),
+          Center(
+            child: Text('Loading your profile…',
+                style: TextStyle(color: cs.onSurfaceVariant)),
+          ),
+          const SizedBox(height: 8),
+          Center(
+            child: TextButton.icon(
+              onPressed: _refresh,
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: const Text('Reload'),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -213,7 +272,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final currentUserId = user['id'] as String;
 
     return RefreshIndicator(
-      onRefresh: _loadTeachers,
+      onRefresh: _refresh,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16),
@@ -274,7 +333,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final rawDate = (user['created_at'] as String? ?? '').split('T')[0];
         final joinDate = rawDate.isNotEmpty ? rawDate : 'Unknown';
 
-        return SingleChildScrollView(
+        return RefreshIndicator(
+          onRefresh: _refresh,
+          child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -317,6 +379,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ],
               const SizedBox(height: 16),
             ],
+          ),
           ),
         );
       },

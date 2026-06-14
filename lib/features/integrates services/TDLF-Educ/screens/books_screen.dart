@@ -156,6 +156,8 @@ class _BooksScreenState extends State<BooksScreen>
                           _selectedCourseId == c['id']
                               ? null
                               : c['id'] as String),
+                      onManage:
+                          _isTeacher ? () => _showCourseActions(context, c) : null,
                     ),
                   ],
                   if (_isTeacher) ...[
@@ -268,6 +270,141 @@ class _BooksScreenState extends State<BooksScreen>
               ));
             },
             child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Teacher action sheet for a course: rename / delete (long-press a chip).
+  void _showCourseActions(BuildContext context, Map<String, dynamic> course) {
+    final cs = Theme.of(context).colorScheme;
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  (course['title'] ?? 'Course').toString(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style:
+                      const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                ),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.edit_rounded),
+              title: const Text('Rename course'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showEditCourseDialog(context, course);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.delete_rounded, color: cs.error),
+              title: Text('Delete', style: TextStyle(color: cs.error)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _confirmDeleteCourse(context, course);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showEditCourseDialog(
+      BuildContext context, Map<String, dynamic> course) {
+    final ctrl =
+        TextEditingController(text: (course['title'] ?? '').toString());
+    final cs = Theme.of(context).colorScheme;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Rename Course'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          decoration: const InputDecoration(
+            labelText: 'Course name',
+            prefixIcon: Icon(Icons.class_outlined),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final title = ctrl.text.trim();
+              if (title.isEmpty) return;
+              final messenger = ScaffoldMessenger.of(context);
+              final courseProvider = context.read<CourseProvider>();
+              Navigator.pop(ctx);
+              final ok = await courseProvider.updateCourse(
+                  course['id'] as String, title);
+              messenger.showSnackBar(SnackBar(
+                content:
+                    Text(ok ? 'Course updated!' : 'Could not update course'),
+                backgroundColor: ok ? cs.primary : cs.error,
+                behavior: SnackBarBehavior.floating,
+              ));
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteCourse(
+      BuildContext context, Map<String, dynamic> course) {
+    final cs = Theme.of(context).colorScheme;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Delete Course'),
+        content: Text(
+            'Delete "${course['title']}"? Books and quizzes keep their content but lose this category.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: cs.error),
+            onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
+              final courseProvider = context.read<CourseProvider>();
+              Navigator.pop(ctx);
+              if (_selectedCourseId == course['id']) {
+                setState(() => _selectedCourseId = null);
+              }
+              final ok =
+                  await courseProvider.deleteCourse(course['id'] as String);
+              messenger.showSnackBar(SnackBar(
+                content:
+                    Text(ok ? 'Course deleted' : 'Could not delete course'),
+                backgroundColor: ok ? cs.primary : cs.error,
+                behavior: SnackBarBehavior.floating,
+              ));
+            },
+            child: const Text('Delete'),
           ),
         ],
       ),
@@ -401,12 +538,14 @@ class _CourseChip extends StatelessWidget {
   final bool selected;
   final ColorScheme cs;
   final VoidCallback onTap;
+  final VoidCallback? onManage;
 
   const _CourseChip({
     required this.label,
     required this.selected,
     required this.cs,
     required this.onTap,
+    this.onManage,
   });
 
   @override
@@ -414,6 +553,7 @@ class _CourseChip extends StatelessWidget {
     final decor = AppDecoration.of(context);
     return GestureDetector(
       onTap: onTap,
+      onLongPress: onManage,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         curve: Curves.easeOut,
