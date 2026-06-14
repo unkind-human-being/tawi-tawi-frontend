@@ -213,4 +213,19 @@ class ApiService {
       return [];
     }
   }
+
+  /// One student's own quiz results from the cloud — lets the profile's stats
+  /// (accuracy, answers) sync across devices instead of starting from zero.
+  Future<List<Map<String, dynamic>>> getMyResults(String studentId) async {
+    try {
+      final data = await _sb
+          .from('quiz_results')
+          .select()
+          .eq('student_id', studentId)
+          .order('submitted_at', ascending: false);
+      return List<Map<String, dynamic>>.from(data);
+    } catch (_) {
+      return [];
+    }
+  }
 }

@@ -13,6 +13,8 @@ import 'providers/quiz_provider.dart';
 import 'providers/theme_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home_screen.dart';
+import 'widgets/app_logo.dart';
+import 'widgets/aurora_background.dart';
 
 /// ════════════════════════════════════════════════════════════════════════
 ///  TDLF-Educ — drop-in module entry point.
@@ -78,6 +80,7 @@ class TdlfEducApp extends StatefulWidget {
 
 class _TdlfEducAppState extends State<TdlfEducApp> {
   late final Future<void> _ready = ensureTdlfEducInitialized();
+  bool _continued = false;
 
   @override
   Widget build(BuildContext context) {
@@ -105,7 +108,12 @@ class _TdlfEducAppState extends State<TdlfEducApp> {
             ChangeNotifierProvider(create: (_) => QuizProvider()),
             ChangeNotifierProvider(create: (_) => CourseProvider()),
           ],
-          child: const _TdlfEducRoot(),
+          child: _TdlfEducRoot(
+            // When opened from a host (guestMode), show a branded welcome with
+            // a Continue button first.
+            showWelcome: widget.guestMode && !_continued,
+            onContinue: () => setState(() => _continued = true),
+          ),
         );
       },
     );
@@ -115,7 +123,9 @@ class _TdlfEducAppState extends State<TdlfEducApp> {
 /// The themed MaterialApp + auth gate (its own navigator, so it stays isolated
 /// when embedded inside another app).
 class _TdlfEducRoot extends StatelessWidget {
-  const _TdlfEducRoot();
+  final bool showWelcome;
+  final VoidCallback onContinue;
+  const _TdlfEducRoot({required this.showWelcome, required this.onContinue});
 
   @override
   Widget build(BuildContext context) {
@@ -128,8 +138,10 @@ class _TdlfEducRoot extends StatelessWidget {
           darkTheme: themeProvider.darkTheme,
           themeMode:
               themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-          home: authProvider.isLoggedIn
-              ? (authProvider.isGuest
+          home: showWelcome
+              ? _EmbeddedWelcome(onContinue: onContinue)
+              : authProvider.isLoggedIn
+              ? (authProvider.isEmbedded
                   // Embedded in a host app: the Android back gesture/button
                   // returns to the host instead of doing nothing.
                   ? PopScope(
@@ -149,6 +161,65 @@ class _TdlfEducRoot extends StatelessWidget {
           },
         );
       },
+    );
+  }
+}
+
+/// Branded welcome shown when the module is opened from a host app (Tawi-Tawi):
+/// the app logo + a Continue button into the content.
+class _EmbeddedWelcome extends StatelessWidget {
+  final VoidCallback onContinue;
+  const _EmbeddedWelcome({required this.onContinue});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Scaffold(
+      body: AuroraBackground(
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(28, 24, 28, 28),
+            child: Column(
+              children: [
+                const Spacer(flex: 3),
+                const AppLogo(size: 116, showWordmark: true),
+                const Spacer(flex: 2),
+                Text(
+                  'Books and quizzes for every subject — built to work even '
+                  'offline.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    height: 1.4,
+                    color: cs.onSurfaceVariant,
+                  ),
+                ),
+                const Spacer(flex: 3),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: onContinue,
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
+                    ),
+                    child: const Text('Continue',
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w700)),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                TextButton(
+                  onPressed: () =>
+                      Navigator.of(context, rootNavigator: true).maybePop(),
+                  child: const Text('Back to Tawi-Tawi'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

@@ -135,6 +135,31 @@ class QuizProvider extends ChangeNotifier {
     } catch (_) {}
   }
 
+  // ── Cloud-synced results (for the profile, across devices) ──────────────────
+  List<Map<String, dynamic>> _cloudResults = [];
+  List<Map<String, dynamic>> get cloudResults => _cloudResults;
+
+  Future<void> loadCloudResults(String studentId) async {
+    try {
+      _cloudResults = await _apiService.getMyResults(studentId);
+      notifyListeners();
+    } catch (_) {}
+  }
+
+  /// Total questions answered across all submitted quizzes (cloud).
+  int get cloudTotalAnswered => _cloudResults.fold(
+      0, (s, r) => s + ((r['total_questions'] as num?)?.toInt() ?? 0));
+
+  /// Correct answers derived from each session's score % × its question count.
+  int get cloudTotalCorrect => _cloudResults.fold(0, (s, r) {
+        final tq = (r['total_questions'] as num?)?.toInt() ?? 0;
+        final score = (r['score'] as num?)?.toDouble() ?? 0;
+        return s + (score / 100 * tq).round();
+      });
+
+  double get cloudAccuracy =>
+      cloudTotalAnswered > 0 ? cloudTotalCorrect / cloudTotalAnswered * 100 : 0.0;
+
   // ── "Already answered" tracking ─────────────────────────────────────────────
   // A student can't retake a quiz they've already submitted. Tracked from the
   // local quiz_attempts table (per device/account).

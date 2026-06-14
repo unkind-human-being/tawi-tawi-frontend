@@ -6,6 +6,7 @@ import '../../config/app_config.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/aurora_background.dart';
 import '../../widgets/glass.dart';
+import '../../widgets/app_logo.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -73,7 +74,15 @@ class _LoginScreenState extends State<LoginScreen> {
       password: _passwordCtrl.text,
     );
     if (success && mounted) {
-      Navigator.of(context).pushReplacementNamed('/home');
+      // If we were pushed on top (a guest tapping "Sign in" inside the embedded
+      // app), just pop — the app underneath rebuilds as the now-real user.
+      // Otherwise (standalone first launch) go to the home route.
+      final nav = Navigator.of(context);
+      if (nav.canPop()) {
+        nav.pop();
+      } else {
+        nav.pushReplacementNamed('/home');
+      }
     }
   }
 
@@ -127,6 +136,17 @@ class _LoginScreenState extends State<LoginScreen> {
                 constraints: const BoxConstraints(maxWidth: 460),
                 child: Column(
                   children: [
+                    // Shown only when this screen was pushed on top (a guest in
+                    // the embedded app chose to sign in) — lets them go back.
+                    if (Navigator.of(context).canPop())
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton.icon(
+                          onPressed: () => Navigator.of(context).maybePop(),
+                          icon: const Icon(Icons.arrow_back_rounded, size: 18),
+                          label: const Text('Continue as guest'),
+                        ),
+                      ),
                     _buildHeader(context),
                     const SizedBox(height: 30),
                     _buildCard(context),
@@ -147,12 +167,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final decor = AppDecoration.of(context);
     return Column(
       children: [
-        const GradientIconBadge(
-          icon: Icons.school_rounded,
-          size: 84,
-          iconSize: 46,
-          radius: 26,
-        ),
+        const AppLogo(size: 84),
         const SizedBox(height: 20),
         ShaderMask(
           shaderCallback: (rect) => decor.brand.createShader(rect),
@@ -344,27 +359,32 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 14),
-        InputDecorator(
-          decoration: const InputDecoration(
-            labelText: 'Role',
-            prefixIcon: Icon(Icons.verified_user_outlined),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: _selectedRole,
-              isDense: true,
-              isExpanded: true,
-              borderRadius: BorderRadius.circular(16),
-              items: AppConfig.userRoles
-                  .map((r) => DropdownMenuItem(value: r, child: Text(r)))
-                  .toList(),
-              onChanged: (v) {
-                if (v != null) setState(() => _selectedRole = v);
-              },
+        // In the embedded host app only Students can sign up (teachers create
+        // their account in the main app, then sign in here). So hide the role
+        // picker and keep the role as Student.
+        if (!auth.isEmbedded) ...[
+          const SizedBox(height: 14),
+          InputDecorator(
+            decoration: const InputDecoration(
+              labelText: 'Role',
+              prefixIcon: Icon(Icons.verified_user_outlined),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: _selectedRole,
+                isDense: true,
+                isExpanded: true,
+                borderRadius: BorderRadius.circular(16),
+                items: AppConfig.userRoles
+                    .map((r) => DropdownMenuItem(value: r, child: Text(r)))
+                    .toList(),
+                onChanged: (v) {
+                  if (v != null) setState(() => _selectedRole = v);
+                },
+              ),
             ),
           ),
-        ),
+        ],
         if (_selectedRole == 'Teacher') ...[
           const SizedBox(height: 14),
           Builder(builder: (context) {
