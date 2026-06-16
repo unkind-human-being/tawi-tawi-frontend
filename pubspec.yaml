@@ -41,7 +41,7 @@ dependencies:
   flutter_facebook_auth: ^7.1.6
   qr_flutter: ^4.1.0
   image_picker: ^1.1.2
-  agora_rtc_engine: ^6.3.2
+  agora_rtc_engine: ^6.5.4
   permission_handler: ^11.3.1
   shared_preferences: ^2.3.3
   record: ^6.2.0

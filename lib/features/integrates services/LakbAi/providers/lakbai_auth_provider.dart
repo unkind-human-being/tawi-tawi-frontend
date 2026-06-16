@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // ✅ Added SharedPreferences
 import '../lakbai_config.dart';
 
 class LakbaiAuthProvider extends ChangeNotifier {
@@ -17,90 +16,66 @@ class LakbaiAuthProvider extends ChangeNotifier {
 
   final _storage = const FlutterSecureStorage();
 
-  LakbaiAuthProvider() {
-    initAuth();
-  }
+  LakbaiAuthProvider() { initAuth(); }
 
   Future<void> initAuth() async {
-  try {
-    final token = await _storage.read(key: 'lakbai_jwt_token');
-    final savedUser = await _storage.read(key: 'lakbai_user_data');
-    
-    if (token != null && savedUser != null) {
-      _user = jsonDecode(savedUser);
-    }
-  } catch (e) {
-    debugPrint('Secure storage initialization error: $e');
-  } finally {
-    _isLoading = false; // ✅ FIXED: Changed __isLoading to _isLoading
-    notifyListeners();
-  }
-}
-
-  // ✅ NEW: Silently recovers the session if Kawman wiped the secure storage
-  Future<bool> attemptSilentRecovery(String tawiEmail) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final savedEmail = prefs.getString('lakbai_recovery_email');
-      final savedPassword = prefs.getString('lakbai_recovery_password');
+      final token = await _storage.read(key: 'lakbai_jwt_token');
+      final savedUser = await _storage.read(key: 'lakbai_user_data');
+      if (token != null && savedUser != null) _user = jsonDecode(savedUser);
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 
-      // Only auto-login if the saved LakbAi email matches the currently logged-in Kawman email!
-      if (savedEmail != null && savedPassword != null && savedEmail == tawiEmail) {
-        await login(savedEmail, savedPassword); // Silently get a new backend token
-        return true; 
+  // ✅ HANDSHAKE: Checks the internal route and forces Auto-Login if successful
+  Future<String> verifyHandshake(String tawiId, String email) async {
+    final safeEmail = email.trim().toLowerCase();
+    try {
+      final url = '${LakbaiAppConfig.baseUrl}/internal/verify-user';
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-internal-gateway-secret': LakbaiAppConfig.gatewaySecret
+        },
+        body: jsonEncode({'tawiTawiUserId': tawiId, 'email': safeEmail}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['requiresRegistration'] == true) {
+          return "SIGNUP"; // User does not exist, send to Signup
+        } else if (data['isLinked'] == true && data['token'] != null) {
+          _user = data['user'];
+          await _storage.write(key: 'lakbai_jwt_token', value: data['token']);
+          await _storage.write(key: 'lakbai_user_data', value: jsonEncode(data['user']));
+          notifyListeners();
+          return "SUCCESS"; // User exists! Token saved. Bypass signup.
+        }
       }
     } catch (e) {
-      debugPrint('Silent recovery failed: $e');
+      debugPrint('Handshake Error: $e');
     }
-    return false;
+    return "ERROR";
   }
 
-  Future<void> login(String email, String password) async {
-    final url = '${LakbaiAppConfig.baseUrl}/auth/login';
-    
+  // ✅ INTERNAL REGISTER: Registers cleanly using the Gateway
+  Future<void> registerHandshake(String tawiId, String name, String email, String role, String region, String contactNumber) async {
+    final url = '${LakbaiAppConfig.baseUrl}/internal/register-user';
     final response = await http.post(
       Uri.parse(url),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': email, 'password': password}),
-    );
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      _user = data['user'];
-      
-      await _storage.write(key: 'lakbai_jwt_token', value: data['token']);
-      await _storage.write(key: 'lakbai_user_data', value: jsonEncode(data['user']));
-
-      // ✅ VAULT: Save backup for silent auto-login
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('lakbai_recovery_email', email);
-      await prefs.setString('lakbai_recovery_password', password);
-
-      notifyListeners();
-    } else {
-      throw Exception(jsonDecode(response.body)['message'] ?? 'Login failed');
-    }
-  }
-
-  Future<void> register(
-    String name, 
-    String email, 
-    String password, 
-    String role, 
-    String region, 
-    String contactNumber
-  ) async {
-    final url = '${LakbaiAppConfig.baseUrl}/auth/signup';
-
-    final response = await http.post(
-      Uri.parse(url),
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'x-internal-gateway-secret': LakbaiAppConfig.gatewaySecret
+      },
       body: jsonEncode({
-        'name': name,
-        'email': email,
-        'password': password,
+        'tawiTawiUserId': tawiId,
+        'fullName': name,
+        'email': email.trim().toLowerCase(),
         'role': role,
-        'region': region, 
+        'region': region,
         'contactNumber': contactNumber
       }),
     );
@@ -110,12 +85,6 @@ class LakbaiAuthProvider extends ChangeNotifier {
       _user = data['user'];
       await _storage.write(key: 'lakbai_jwt_token', value: data['token']);
       await _storage.write(key: 'lakbai_user_data', value: jsonEncode(data['user']));
-
-      // ✅ VAULT: Save backup for silent auto-login
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('lakbai_recovery_email', email);
-      await prefs.setString('lakbai_recovery_password', password);
-
       notifyListeners();
     } else {
       throw Exception(jsonDecode(response.body)['message'] ?? 'Registration failed');
@@ -126,12 +95,6 @@ class LakbaiAuthProvider extends ChangeNotifier {
     _user = null;
     await _storage.delete(key: 'lakbai_jwt_token');
     await _storage.delete(key: 'lakbai_user_data');
-
-    // ✅ VAULT: Wipe backup ONLY if they explicitly click Logout in LakbAi
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('lakbai_recovery_email');
-    await prefs.remove('lakbai_recovery_password');
-
     notifyListeners();
   }
 }
