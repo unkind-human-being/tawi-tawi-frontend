@@ -135,6 +135,55 @@ class QuizProvider extends ChangeNotifier {
     } catch (_) {}
   }
 
+  // ── Cloud-synced results (for the profile, across devices) ──────────────────
+  List<Map<String, dynamic>> _cloudResults = [];
+  List<Map<String, dynamic>> get cloudResults => _cloudResults;
+
+  Future<void> loadCloudResults(String studentId) async {
+    try {
+      _cloudResults = await _apiService.getMyResults(studentId);
+      notifyListeners();
+    } catch (_) {}
+  }
+
+  /// Total questions answered across all submitted quizzes (cloud).
+  int get cloudTotalAnswered => _cloudResults.fold(
+      0, (s, r) => s + ((r['total_questions'] as num?)?.toInt() ?? 0));
+
+  /// Correct answers derived from each session's score % × its question count.
+  int get cloudTotalCorrect => _cloudResults.fold(0, (s, r) {
+        final tq = (r['total_questions'] as num?)?.toInt() ?? 0;
+        final score = (r['score'] as num?)?.toDouble() ?? 0;
+        return s + (score / 100 * tq).round();
+      });
+
+  double get cloudAccuracy =>
+      cloudTotalAnswered > 0 ? cloudTotalCorrect / cloudTotalAnswered * 100 : 0.0;
+
+  // ── "Already answered" tracking ─────────────────────────────────────────────
+  // A student can't retake a quiz they've already submitted. Tracked from the
+  // local quiz_attempts table (per device/account).
+  final Set<String> _answeredQuizIds = {};
+  bool isQuizAnswered(String quizId) => _answeredQuizIds.contains(quizId);
+
+  Future<void> loadAnsweredQuizzes(String userId) async {
+    try {
+      final db = await _dbService.database;
+      final rows = await db.query(
+        'quiz_attempts',
+        columns: ['quiz_id'],
+        where: 'user_id = ?',
+        whereArgs: [userId],
+      );
+      _answeredQuizIds
+        ..clear()
+        ..addAll(rows
+            .map((r) => (r['quiz_id'] ?? '').toString())
+            .where((s) => s.isNotEmpty));
+      notifyListeners();
+    } catch (_) {}
+  }
+
   void prepareQuiz(List<Map<String, dynamic>> quizzes) {
     _activeQuizzes = List.from(quizzes);
     _currentQuestionIndex = 0;
@@ -192,6 +241,7 @@ class QuizProvider extends ChangeNotifier {
           'is_correct': isCorrect ? 1 : 0,
           'attempted_at': DateTime.now().toIso8601String(),
         });
+        _answeredQuizIds.add(quizId.toString()); // lock from being retaken
       }
 
       _quizScore = _activeQuizzes.isNotEmpty ? (correctAnswers / _activeQuizzes.length) * 100 : 0;
@@ -204,6 +254,7 @@ class QuizProvider extends ChangeNotifier {
         'score': _quizScore,
         'total_questions': _activeQuizzes.length,
         'passed': _quizScore >= AppConfig.passingScore,
+        'course_id': courseId, // lets teachers see only their course's results
         'submitted_at': DateTime.now().toIso8601String(),
       });
     } catch (e) {
@@ -230,6 +281,20 @@ class QuizProvider extends ChangeNotifier {
       if (success) {
         _quizzes.removeWhere((q) => (q['quiz_id'] ?? q['id']) == quizId);
         notifyListeners();
+      }
+      return success;
+    } catch (_) { return false; }
+  }
+
+  Future<bool> updateQuiz(String quizId, Map<String, dynamic> data) async {
+    try {
+      final success = await _apiService.updateQuiz(quizId, data);
+      if (success) {
+        final i = _quizzes.indexWhere((q) => (q['quiz_id'] ?? q['id']) == quizId);
+        if (i != -1) {
+          _quizzes[i] = {..._quizzes[i], ...data};
+          notifyListeners();
+        }
       }
       return success;
     } catch (_) { return false; }

@@ -68,6 +68,26 @@ class CourseProvider extends ChangeNotifier {
     return ok;
   }
 
+  Future<bool> updateCourse(String id, String title) async {
+    final t = title.trim();
+    if (t.isEmpty) return false;
+    final ok = await _api.updateCourse(id, {'title': t});
+    if (ok) {
+      final i = _courses.indexWhere((c) => c['id'] == id);
+      if (i != -1) {
+        _courses[i] = {..._courses[i], 'title': t};
+        _sort();
+      }
+      try {
+        final db = await _db.database;
+        await db.update('courses', {'title': t},
+            where: 'id = ?', whereArgs: [id]);
+      } catch (_) {}
+      notifyListeners();
+    }
+    return ok;
+  }
+
   Future<bool> deleteCourse(String id) async {
     final ok = await _api.deleteCourse(id);
     if (ok) {

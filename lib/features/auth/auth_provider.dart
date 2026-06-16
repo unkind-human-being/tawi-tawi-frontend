@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../data/models/user_model.dart';
 import '../../data/repositories/auth_repository.dart';
+import '../../core/channels/app_channels.dart';
 
 enum AuthStatus {
   initial,
@@ -11,7 +12,6 @@ enum AuthStatus {
 }
 
 class AuthProvider extends ChangeNotifier {
-  static const platform = MethodChannel('com.rhyn.reach/messaging');
 
   final AuthRepository _authRepository;
 
@@ -161,7 +161,7 @@ class AuthProvider extends ChangeNotifier {
 
     try {
       await _authRepository.logout();
-      await platform.invokeMethod('syncSession', {
+      await AppChannels.messaging.invokeMethod('syncSession', {
         'userId': null,
         'username': null,
         'token': null,
@@ -268,7 +268,7 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> _syncToNative(UserModel user, String token) async {
     try {
-      await platform.invokeMethod('syncSession', {
+      await AppChannels.messaging.invokeMethod('syncSession', {
         'userId': user.id,
         'username': user.fullName,
         'token': token,

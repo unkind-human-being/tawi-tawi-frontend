@@ -172,6 +172,20 @@ class BookProvider extends ChangeNotifier {
     } catch (_) { return false; }
   }
 
+  Future<bool> updateBook(String bookId, Map<String, dynamic> data) async {
+    try {
+      final success = await _apiService.updateBook(bookId, data);
+      if (success) {
+        final i = _books.indexWhere((b) => b['book_id'] == bookId);
+        if (i != -1) {
+          _books[i] = {..._books[i], ...data};
+          notifyListeners();
+        }
+      }
+      return success;
+    } catch (_) { return false; }
+  }
+
   List<Map<String, dynamic>> searchBooks(String query) {
     if (query.isEmpty) {
       return _books;

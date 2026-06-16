@@ -459,14 +459,14 @@ class _SidebarUserCard extends StatelessWidget {
                 ),
               ),
               IconButton(
-                tooltip: auth.isGuest ? 'Exit' : 'Logout',
+                tooltip: auth.isEmbedded ? 'Exit' : 'Logout',
                 icon: Icon(
-                    auth.isGuest
+                    auth.isEmbedded
                         ? Icons.arrow_back_rounded
                         : Icons.logout_rounded,
                     size: 20,
                     color: cs.onSurfaceVariant),
-                onPressed: () => auth.isGuest
+                onPressed: () => auth.isEmbedded
                     ? Navigator.of(context, rootNavigator: true).maybePop()
                     : _confirmLogout(context),
               ),
@@ -658,7 +658,7 @@ class _GreetingBar extends StatelessWidget {
         return Row(
           children: [
             // When embedded in a host app (Tawi-Tawi), give an obvious way back.
-            if (auth.isGuest) ...[
+            if (auth.isEmbedded) ...[
               Material(
                 color: cs.surfaceContainerHighest.withValues(alpha: 0.55),
                 borderRadius: BorderRadius.circular(14),

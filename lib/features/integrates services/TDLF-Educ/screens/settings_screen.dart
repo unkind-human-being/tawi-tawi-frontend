@@ -248,9 +248,9 @@ class _LogoutTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Embedded in a host app (Tawi-Tawi): no auth here, so "Logout" becomes
-    // "Exit" which simply returns to the host.
-    final isGuest = context.watch<AuthProvider>().isGuest;
+    // Embedded in a host app (Tawi-Tawi): "Logout" becomes "Exit" which simply
+    // returns to the host (stays available even after a guest signs in).
+    final isGuest = context.watch<AuthProvider>().isEmbedded;
     return Container(
       margin: const EdgeInsets.only(top: 6),
       decoration: BoxDecoration(

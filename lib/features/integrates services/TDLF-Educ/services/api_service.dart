@@ -54,6 +54,16 @@ class ApiService {
     }
   }
 
+  /// Renames/edits a course (teachers only — enforced by Supabase RLS).
+  Future<bool> updateCourse(String courseId, Map<String, dynamic> data) async {
+    try {
+      await _sb.from('courses').update(data).eq('id', courseId);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Downloads a book PDF and returns the local file path, or null on failure.
   ///
   /// [onProgress] reports (received, total) bytes. When [validatePdf] is true the
@@ -136,6 +146,17 @@ class ApiService {
     }
   }
 
+  /// Edits an existing book (teachers only — enforced by Supabase RLS).
+  /// Only the keys present in [data] are changed.
+  Future<bool> updateBook(String bookId, Map<String, dynamic> data) async {
+    try {
+      await _sb.from('books').update(data).eq('book_id', bookId);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<Map<String, dynamic>?> addQuiz(Map<String, dynamic> data) async {
     try {
       final res = await _sb.from('quizzes').insert(data).select().single();
@@ -154,11 +175,31 @@ class ApiService {
     }
   }
 
+  /// Edits an existing quiz (teachers only — enforced by Supabase RLS).
+  /// Only the keys present in [data] are changed.
+  Future<bool> updateQuiz(String quizId, Map<String, dynamic> data) async {
+    try {
+      await _sb.from('quizzes').update(data).eq('quiz_id', quizId);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<bool> submitQuizResults(Map<String, dynamic> data) async {
     try {
       await _sb.from('quiz_results').insert(data);
       return true;
     } catch (_) {
+      // Fallback for projects whose quiz_results table doesn't have the
+      // course_id column yet — submission must still succeed.
+      if (data.containsKey('course_id')) {
+        try {
+          final copy = Map<String, dynamic>.from(data)..remove('course_id');
+          await _sb.from('quiz_results').insert(copy);
+          return true;
+        } catch (_) {}
+      }
       return false;
     }
   }
@@ -167,6 +208,21 @@ class ApiService {
   Future<List<Map<String, dynamic>>> getStudents() async {
     try {
       final data = await _sb.from('quiz_results').select();
+      return List<Map<String, dynamic>>.from(data);
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// One student's own quiz results from the cloud — lets the profile's stats
+  /// (accuracy, answers) sync across devices instead of starting from zero.
+  Future<List<Map<String, dynamic>>> getMyResults(String studentId) async {
+    try {
+      final data = await _sb
+          .from('quiz_results')
+          .select()
+          .eq('student_id', studentId)
+          .order('submitted_at', ascending: false);
       return List<Map<String, dynamic>>.from(data);
     } catch (_) {
       return [];
