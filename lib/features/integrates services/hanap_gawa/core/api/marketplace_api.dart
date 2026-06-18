@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -17,6 +18,59 @@ class MarketplaceApi {
   final String? _baseUrlOverride;
 
   MarketplaceApi({String? baseUrlOverride}) : _baseUrlOverride = baseUrlOverride;
+
+  // SSE — streams badge/notification events pushed by the server
+  final _sseController = StreamController<Map<String, dynamic>>.broadcast();
+  Stream<Map<String, dynamic>> get sseEvents => _sseController.stream;
+  http.Client? _sseClient;
+  bool _sseActive = false;
+
+  /// Connects to the SSE endpoint and auto-reconnects on disconnect.
+  void connectSSE() {
+    if (_sseActive) return;
+    _sseActive = true;
+    _sseLoop();
+  }
+
+  void disconnectSSE() {
+    _sseActive = false;
+    _sseClient?.close();
+    _sseClient = null;
+  }
+
+  Future<void> _sseLoop() async {
+    while (_sseActive) {
+      try {
+        _sseClient = http.Client();
+        final request = http.Request('GET', Uri.parse('$_baseUrl/events'));
+        request.headers.addAll(_headers(true));
+        final response = await _sseClient!.send(request);
+
+        String buffer = '';
+        await response.stream.transform(utf8.decoder).forEach((chunk) {
+          buffer += chunk;
+          final lines = buffer.split('\n');
+          buffer = lines.removeLast(); // keep incomplete line in buffer
+          String? event;
+          for (final line in lines) {
+            if (line.startsWith('event:')) {
+              event = line.substring(6).trim();
+            } else if (line.startsWith('data:') && event != null) {
+              try {
+                final data = jsonDecode(line.substring(5).trim()) as Map<String, dynamic>;
+                data['_event'] = event;
+                if (!_sseController.isClosed) _sseController.add(data);
+              } catch (_) {}
+              event = null;
+            }
+          }
+        });
+      } catch (_) {
+        // connection dropped
+      }
+      if (_sseActive) await Future.delayed(const Duration(seconds: 5));
+    }
+  }
 
   late final SharedPreferences _prefs;
   SessionUser? storedUser;

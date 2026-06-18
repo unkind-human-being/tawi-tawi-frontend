@@ -92,11 +92,8 @@ class _DiscoverScreenState extends State<DiscoverScreen>
       _loadFeed(showSpinner: false);
       _loadStories();
     });
-    if (widget.api.token.isNotEmpty) {
-      _loadUnreadCount();
-      _notifTimer = Timer.periodic(
-          const Duration(minutes: 1), (_) => _loadUnreadCount());
-    }
+    // Notification count is now pushed via SSE from shell_screen — no polling needed
+    if (widget.api.token.isNotEmpty) _loadUnreadCount();
     _connectivitySub = SyncService.instance.onlineStream.listen((_) {
       if (SyncService.instance.isOnline) _loadFeed(showSpinner: false);
     });
