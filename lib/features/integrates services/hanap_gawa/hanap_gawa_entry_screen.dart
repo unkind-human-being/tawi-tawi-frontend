@@ -24,8 +24,10 @@ class _HanapGawaEntryScreenState extends State<HanapGawaEntryScreen> {
   static const Color _primary = Color(0xFFB45309);
   static const Color _bg = Color(0xFFFFFBEB);
 
-  static const String _hanapGawaBaseUrl =
-      'https://tawi-tawi-backend.onrender.com/api/hanapgawa';
+  static const String _hanapGawaBaseUrl = String.fromEnvironment(
+    'HANAPGAWA_API_URL',
+    defaultValue: 'https://tawi-tawi-backend.onrender.com/api/hanapgawa',
+  );
 
   MarketplaceApi? _api;
   bool _ready = false;
