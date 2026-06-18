@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../auth/auth_provider.dart';
 import 'core/api/marketplace_api.dart';
@@ -67,12 +70,30 @@ class _HanapGawaEntryScreenState extends State<HanapGawaEntryScreen> {
 
       await api.initWithToken(token, user: sessionUser);
 
-      // Register/link the Tawi-Tawi user into HanapGawa's database
+      // Register/link the Tawi-Tawi user into HanapGawa's database.
+      // Runs in the background — a 429 from Render's edge must not block
+      // the app from loading. The upsert is cached per-user (1 hour TTL)
+      // so it only fires once per session, not on every open.
       if (tawiUser != null) {
-        await api.ssoInit(
-          email: tawiUser.email,
-          fullName: tawiUser.fullName,
-        );
+        final userId = tawiUser.id;
+        final email = tawiUser.email;
+        final fullName = tawiUser.fullName;
+        unawaited(SharedPreferences.getInstance().then((prefs) async {
+          final cacheKey = 'hanapgawa_sso_init_$userId';
+          final lastInit = prefs.getInt(cacheKey) ?? 0;
+          final hourAgo = DateTime.now()
+              .subtract(const Duration(hours: 1))
+              .millisecondsSinceEpoch;
+          if (lastInit < hourAgo) {
+            try {
+              await api.ssoInit(email: email, fullName: fullName);
+              await prefs.setInt(
+                  cacheKey, DateTime.now().millisecondsSinceEpoch);
+            } catch (_) {
+              // Ignored — user may already be in DB from a prior session.
+            }
+          }
+        }));
       }
 
       if (!kIsWeb) {

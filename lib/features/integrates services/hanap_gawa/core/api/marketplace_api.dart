@@ -23,7 +23,7 @@ class MarketplaceApi {
 
   String get baseUrl {
     if (_baseUrlOverride != null && _baseUrlOverride!.isNotEmpty) return _baseUrlOverride!;
-    const configured = String.fromEnvironment('API_BASE_URL');
+    const configured = String.fromEnvironment('HANAPGAWA_API_URL');
     if (configured.isNotEmpty) return configured;
     return 'https://hanapgawa.onrender.com/api/v1';
   }
@@ -995,6 +995,10 @@ class MarketplaceApi {
 
   static const _timeout = Duration(seconds: 90);
 
+  Future<http.Response> _fetch(Future<http.Response> Function() request) async {
+    return request();
+  }
+
   Future<Map<String, dynamic>> _get(
     String path, {
     bool auth = false,
@@ -1003,7 +1007,7 @@ class MarketplaceApi {
     final uri = Uri.parse('$_baseUrl$path')
         .replace(queryParameters: query.isEmpty ? null : query);
     return _decode(
-        await http.get(uri, headers: _headers(auth)).timeout(_timeout));
+        await _fetch(() => http.get(uri, headers: _headers(auth)).timeout(_timeout)));
   }
 
   Future<Map<String, dynamic>> _post(
@@ -1011,57 +1015,57 @@ class MarketplaceApi {
     Map<String, dynamic> body, {
     bool auth = false,
   }) async =>
-      _decode(await http
+      _decode(await _fetch(() => http
           .post(
             Uri.parse('$_baseUrl$path'),
             headers: _headers(auth),
             body: jsonEncode(body),
           )
-          .timeout(_timeout));
+          .timeout(_timeout)));
 
   Future<Map<String, dynamic>> _patch(
     String path,
     Map<String, dynamic> body, {
     bool auth = false,
   }) async =>
-      _decode(await http
+      _decode(await _fetch(() => http
           .patch(
             Uri.parse('$_baseUrl$path'),
             headers: _headers(auth),
             body: jsonEncode(body),
           )
-          .timeout(_timeout));
+          .timeout(_timeout)));
 
   Future<Map<String, dynamic>> _put(
     String path,
     Map<String, dynamic> body, {
     bool auth = false,
   }) async =>
-      _decode(await http
+      _decode(await _fetch(() => http
           .put(
             Uri.parse('$_baseUrl$path'),
             headers: _headers(auth),
             body: jsonEncode(body),
           )
-          .timeout(_timeout));
+          .timeout(_timeout)));
 
   Future<void> _deleteVoid(String path,
       {bool auth = false, Map<String, dynamic>? body}) async {
-    final response = await http.delete(
-      Uri.parse('$_baseUrl$path'),
-      headers: _headers(auth),
-      body: body == null ? null : jsonEncode(body),
-    );
+    final response = await _fetch(() => http.delete(
+          Uri.parse('$_baseUrl$path'),
+          headers: _headers(auth),
+          body: body == null ? null : jsonEncode(body),
+        ));
     if (response.statusCode >= 200 && response.statusCode < 300) return;
     _decode(response);
   }
 
   Future<Map<String, dynamic>> _delete2(String path,
       {bool auth = false}) async {
-    final response = await http.delete(
-      Uri.parse('$_baseUrl$path'),
-      headers: _headers(auth),
-    );
+    final response = await _fetch(() => http.delete(
+          Uri.parse('$_baseUrl$path'),
+          headers: _headers(auth),
+        ));
     return _decode(response);
   }
 
@@ -1077,6 +1081,9 @@ class MarketplaceApi {
           ? <String, dynamic>{}
           : jsonDecode(response.body) as Map<String, dynamic>;
     } catch (_) {
+      if (response.statusCode == 429) {
+        throw Exception('Too many requests (429). Please wait a moment and try again.');
+      }
       // Server returned non-JSON (HTML error page, proxy page, etc.)
       throw Exception(
           'Server is not responding correctly (HTTP ${response.statusCode}). '
