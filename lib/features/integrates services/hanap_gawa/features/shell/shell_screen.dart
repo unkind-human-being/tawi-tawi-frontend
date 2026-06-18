@@ -88,8 +88,8 @@ class _ShellScreenState extends State<ShellScreen> {
     final type = event['_event'] as String?;
     if (type == 'badges') {
       setState(() {
-        _bookingsBadge = (event['bookings'] as int? ?? 0);
-        _messagesBadge = (event['messages'] as int? ?? 0);
+        _bookingBadge = (event['bookings'] as int? ?? 0);
+        _inboxBadge = (event['messages'] as int? ?? 0);
       });
     } else if (type == 'notification') {
       // A new notification arrived — refresh the unread count badge
