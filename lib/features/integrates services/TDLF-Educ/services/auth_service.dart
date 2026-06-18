@@ -47,9 +47,26 @@ class AuthService {
           'grade_level': gradeLevel,
         },
       );
-      // If email confirmation is disabled, sign-up creates a session. Sign out
-      // so the user explicitly signs in next (keeps the existing UX/flow).
-      if (_sb.auth.currentSession != null) {
+      // If email confirmation is disabled, sign-up creates a session. Use it to
+      // make sure a complete profile row exists even if the server-side trigger
+      // is missing/incomplete (self-heal), then sign out so the user explicitly
+      // signs in next (keeps the existing UX/flow).
+      final uid = _sb.auth.currentUser?.id;
+      if (_sb.auth.currentSession != null && uid != null) {
+        try {
+          await _sb.from('profiles').upsert({
+            'id': uid,
+            'email': email,
+            'username': username,
+            'full_name': fullName,
+            'role': role,
+            'course': course,
+            'student_id': studentId,
+            'grade_level': gradeLevel,
+          }, onConflict: 'id');
+        } catch (_) {
+          // Trigger already created it, or the username is taken — non-fatal.
+        }
         await _sb.auth.signOut();
       }
       return null;
@@ -64,14 +81,23 @@ class AuthService {
   /// messages for users (instead of cryptic text like
   /// "Database error saving new user").
   String _friendlyAuthError(Object e, {required bool signingUp}) {
-    final msg = (e is AuthException ? e.message : e.toString()).toLowerCase();
+    final raw = (e is AuthException ? e.message : e.toString());
+    final msg = raw.toLowerCase();
 
-    // The sign-up trigger throws on a duplicate username (the only unique
-    // constraint), which Supabase surfaces as "Database error saving new user".
-    if (msg.contains('saving new user') ||
-        msg.contains('unexpected_failure') ||
-        msg.contains('duplicate key') ||
-        msg.contains('profiles_username_key')) {
+    // New sign-ups turned OFF on the server — the #1 cause of "every sign-up
+    // fails no matter the username/email". A Supabase setting, not a duplicate.
+    if (msg.contains('signups not allowed') ||
+        msg.contains('signups are disabled') ||
+        msg.contains('signup is disabled') ||
+        msg.contains('signups disabled') ||
+        msg.contains('email signups are disabled') ||
+        msg.contains('not allowed for this instance') ||
+        msg.contains('email logins are disabled')) {
+      return 'Sign-ups are turned off on the server. Turn ON "Allow new users '
+          'to sign up" in Supabase → Authentication → Sign In / Providers → Email.';
+    }
+    // A genuine duplicate-username collision (only this is really "pick another").
+    if (msg.contains('duplicate key') || msg.contains('profiles_username_key')) {
       return 'That username is already taken. Please choose a different username.';
     }
     if (msg.contains('already registered') ||
@@ -79,15 +105,27 @@ class AuthService {
         msg.contains('user already exists')) {
       return 'An account with this email already exists. Try signing in instead.';
     }
+    // A server-side problem creating the profile — usually the database setup is
+    // incomplete. Changing username/email won't help; re-running the SQL will.
+    if (msg.contains('saving new user') ||
+        msg.contains('unexpected_failure') ||
+        msg.contains('database error')) {
+      return 'The server couldn\'t finish creating your account. The database '
+          'setup may be incomplete — re-run supabase/schema.sql in Supabase, '
+          'then try again.';
+    }
     if (msg.contains('invalid login') || msg.contains('invalid credentials')) {
       return 'Incorrect email or password.';
     }
     if (msg.contains('email not confirmed')) {
-      return 'Your email isn\'t confirmed yet. Check your inbox, or ask your '
-          'admin to turn off email confirmation.';
+      return 'Your email isn\'t confirmed yet. Check your inbox, or turn off '
+          '"Confirm email" in Supabase → Authentication → Sign In / Providers.';
     }
     if (msg.contains('password') &&
-        (msg.contains('at least') || msg.contains('should be') || msg.contains('weak'))) {
+        (msg.contains('at least') ||
+            msg.contains('should be') ||
+            msg.contains('6 characters') ||
+            msg.contains('weak'))) {
       return 'Password is too short — use at least 6 characters.';
     }
     if (msg.contains('valid email') ||
@@ -96,20 +134,24 @@ class AuthService {
         msg.contains('invalid format')) {
       return 'Please enter a valid email address.';
     }
-    if (msg.contains('rate limit') || msg.contains('too many')) {
+    if (msg.contains('rate limit') ||
+        msg.contains('too many') ||
+        msg.contains('for security purposes')) {
       return 'Too many attempts. Please wait a moment and try again.';
     }
     if (msg.contains('socket') ||
         msg.contains('network') ||
         msg.contains('failed host') ||
+        msg.contains('clientexception') ||
         msg.contains('timeout') ||
         msg.contains('connection')) {
       return 'Couldn\'t reach the server. Check your internet connection and try again.';
     }
-    // Sensible fallback.
+    // Unknown — show the real reason so it's never a dead end we have to guess at.
+    final detail = raw.trim().isEmpty ? '' : ' ($raw)';
     return signingUp
-        ? 'Sign up failed. Please try again with a different username or email.'
-        : 'Could not sign in. Please try again.';
+        ? 'Sign up failed$detail. Please try again.'
+        : 'Could not sign in$detail. Please try again.';
   }
 
   /// Signs in. Returns `null` on success, otherwise an error message.

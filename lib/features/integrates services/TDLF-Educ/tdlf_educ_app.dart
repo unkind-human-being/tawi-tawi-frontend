@@ -44,19 +44,31 @@ Future<void> ensureTdlfEducInitialized() async {
     databaseFactory = databaseFactoryFfi;
   }
 
-  // Only initialize Supabase if the host app hasn't already done so.
+  // Only initialize Supabase if the host app hasn't already done so. We must
+  // probe `Supabase.instance.client` (the late field), NOT `Supabase.instance`:
+  // the singleton object exists before initialize(), so checking `.instance`
+  // alone wrongly reported "already initialized" and skipped setup — which left
+  // `client` unset and threw "LateInitializationError: Field 'client'..." on
+  // the first cloud call (e.g. sign-up).
   var alreadyInitialized = true;
   try {
-    Supabase.instance; // throws if not yet initialized
+    Supabase.instance.client; // throws until initialize() has run
   } catch (_) {
     alreadyInitialized = false;
   }
   if (!alreadyInitialized) {
-    await Supabase.initialize(
-      url: AppConfig.supabaseUrl,
-      // ignore: deprecated_member_use
-      anonKey: AppConfig.supabaseAnonKey,
-    );
+    try {
+      await Supabase.initialize(
+        url: AppConfig.supabaseUrl,
+        // ignore: deprecated_member_use
+        anonKey: AppConfig.supabaseAnonKey,
+      );
+    } catch (e) {
+      // If a host app initialized it in parallel, ignore the double-init error.
+      if (!e.toString().toLowerCase().contains('already initialized')) {
+        rethrow;
+      }
+    }
   }
 
   _initialized = true;

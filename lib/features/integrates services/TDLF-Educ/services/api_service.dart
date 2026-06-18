@@ -239,6 +239,27 @@ class ApiService {
     } catch (_) {}
   }
 
+  /// Strict variants used by the offline outbox: they THROW when the upload
+  /// fails (offline), so the caller can keep the record pending and retry later.
+  Future<void> insertAttemptsOrThrow(List<Map<String, dynamic>> attempts) async {
+    if (attempts.isEmpty) return;
+    await _sb.from('quiz_attempts').insert(attempts);
+  }
+
+  Future<void> insertResultOrThrow(Map<String, dynamic> data) async {
+    try {
+      await _sb.from('quiz_results').insert(data);
+    } catch (e) {
+      // Retry without course_id for projects that don't have that column yet.
+      if (data.containsKey('course_id')) {
+        final copy = Map<String, dynamic>.from(data)..remove('course_id');
+        await _sb.from('quiz_results').insert(copy);
+        return;
+      }
+      rethrow;
+    }
+  }
+
   /// One student's own per-question attempts (the History tab). Throws if the
   /// cloud is unreachable / the table is missing, so callers can fall back to
   /// the local cache.
