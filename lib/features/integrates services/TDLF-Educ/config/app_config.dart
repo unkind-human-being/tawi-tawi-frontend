@@ -10,6 +10,12 @@ class AppConfig {
   static const String supabaseUrl = 'https://jjiozotzlmblsxgsjzgw.supabase.co';
   static const String supabaseAnonKey =
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqaW96b3R6bG1ibHN4Z3Nqemd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwNzg4NzAsImV4cCI6MjA5NjY1NDg3MH0.6udahheo8t3FNGyeK2f-DCP_scXJWJqVJWSChWKPB9U';
+
+  // Salt used to derive a stable Supabase password from a host (Tawi-Tawi) user
+  // so their account "flows in" when opening the embedded app. Deterministic so
+  // the same host user maps to the same account on any device. (Class-project
+  // convenience — not a production-grade SSO.)
+  static const String hostAccountSecret = 'tdlf-educ::tawitawi::v1';
   
   // API Endpoints
   static const String loginEndpoint = '/login';

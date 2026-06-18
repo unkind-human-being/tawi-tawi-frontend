@@ -66,13 +66,23 @@ Future<void> ensureTdlfEducInitialized() async {
 ///   Navigator.push(context,
 ///       MaterialPageRoute(builder: (_) => const TdlfEducApp()));
 class TdlfEducApp extends StatefulWidget {
-  /// When `true`, the module skips its own sign-in/sign-up and opens straight
-  /// into the content as a read-only guest. Use this when launching from a host
-  /// super-app (e.g. Tawi-Tawi) that has already authenticated the user.
-  /// Defaults to `false` so the standalone app keeps its own login.
-  final bool guestMode;
+  /// `true` when launched inside a host super-app (e.g. Tawi-Tawi): shows a
+  /// branded welcome and keeps the "return to host" controls. Defaults to
+  /// `false` for the standalone app.
+  final bool embedded;
 
-  const TdlfEducApp({super.key, this.guestMode = false});
+  /// The host's logged-in user (Tawi-Tawi). When provided, the welcome's
+  /// "Continue" signs them straight into a matching TDLF-Educ (Supabase)
+  /// account derived from their email — no extra sign-up.
+  final String? hostEmail;
+  final String? hostName;
+
+  const TdlfEducApp({
+    super.key,
+    this.embedded = false,
+    this.hostEmail,
+    this.hostName,
+  });
 
   @override
   State<TdlfEducApp> createState() => _TdlfEducAppState();
@@ -103,16 +113,18 @@ class _TdlfEducAppState extends State<TdlfEducApp> {
           providers: [
             ChangeNotifierProvider(create: (_) => ThemeProvider()),
             ChangeNotifierProvider(
-                create: (_) => AuthProvider(guest: widget.guestMode)),
+                create: (_) => AuthProvider(embedded: widget.embedded)),
             ChangeNotifierProvider(create: (_) => BookProvider()),
             ChangeNotifierProvider(create: (_) => QuizProvider()),
             ChangeNotifierProvider(create: (_) => CourseProvider()),
           ],
           child: _TdlfEducRoot(
-            // When opened from a host (guestMode), show a branded welcome with
-            // a Continue button first.
-            showWelcome: widget.guestMode && !_continued,
-            onContinue: () => setState(() => _continued = true),
+            embedded: widget.embedded,
+            hostEmail: widget.hostEmail,
+            hostName: widget.hostName,
+            // When opened from a host, show a branded welcome first.
+            showWelcome: widget.embedded && !_continued,
+            onProceed: () => setState(() => _continued = true),
           ),
         );
       },
@@ -123,14 +135,36 @@ class _TdlfEducAppState extends State<TdlfEducApp> {
 /// The themed MaterialApp + auth gate (its own navigator, so it stays isolated
 /// when embedded inside another app).
 class _TdlfEducRoot extends StatelessWidget {
+  final bool embedded;
+  final String? hostEmail;
+  final String? hostName;
   final bool showWelcome;
-  final VoidCallback onContinue;
-  const _TdlfEducRoot({required this.showWelcome, required this.onContinue});
+  final VoidCallback onProceed;
+  const _TdlfEducRoot({
+    required this.embedded,
+    required this.hostEmail,
+    required this.hostName,
+    required this.showWelcome,
+    required this.onProceed,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Consumer2<ThemeProvider, AuthProvider>(
       builder: (context, themeProvider, authProvider, _) {
+        final Widget content;
+        if (showWelcome && !authProvider.isLoggedIn) {
+          content = _EmbeddedWelcome(
+            hostEmail: hostEmail,
+            hostName: hostName,
+            onProceed: onProceed,
+          );
+        } else if (authProvider.isLoggedIn) {
+          content = const HomeScreen();
+        } else {
+          // Embedded sign-in is pre-filled with the host email (their account).
+          content = LoginScreen(prefillEmail: embedded ? hostEmail : null);
+        }
         return MaterialApp(
           title: AppConfig.appName,
           debugShowCheckedModeBanner: false,
@@ -138,25 +172,13 @@ class _TdlfEducRoot extends StatelessWidget {
           darkTheme: themeProvider.darkTheme,
           themeMode:
               themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-          home: showWelcome
-              ? _EmbeddedWelcome(onContinue: onContinue)
-              : authProvider.isLoggedIn
-              ? (authProvider.isEmbedded
-                  // Embedded in a host app: the Android back gesture/button
-                  // returns to the host instead of doing nothing.
-                  ? PopScope(
-                      canPop: false,
-                      onPopInvokedWithResult: (didPop, _) {
-                        if (!didPop) {
-                          Navigator.of(context, rootNavigator: true).maybePop();
-                        }
-                      },
-                      child: const HomeScreen(),
-                    )
-                  : const HomeScreen())
-              : const LoginScreen(),
+          // Embedded: the Android back gesture returns to the host from any
+          // screen.
+          home: embedded ? _HostBackScope(child: content) : content,
           routes: {
-            '/home': (context) => const HomeScreen(),
+            '/home': (context) => embedded
+                ? const _HostBackScope(child: HomeScreen())
+                : const HomeScreen(),
             '/login': (context) => const LoginScreen(),
           },
         );
@@ -165,15 +187,81 @@ class _TdlfEducRoot extends StatelessWidget {
   }
 }
 
-/// Branded welcome shown when the module is opened from a host app (Tawi-Tawi):
-/// the app logo + a Continue button into the content.
-class _EmbeddedWelcome extends StatelessWidget {
-  final VoidCallback onContinue;
-  const _EmbeddedWelcome({required this.onContinue});
+/// Wraps a screen so the Android back gesture/button returns to the host app
+/// instead of doing nothing (used in embedded mode).
+class _HostBackScope extends StatelessWidget {
+  final Widget child;
+  const _HostBackScope({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          Navigator.of(context, rootNavigator: true).maybePop();
+        }
+      },
+      child: child,
+    );
+  }
+}
+
+/// Branded welcome shown when the module is opened from a host app (Tawi-Tawi).
+/// "Continue" signs the user into a TDLF-Educ account derived from their host
+/// account; or they can use their own TDLF-Educ account instead.
+class _EmbeddedWelcome extends StatefulWidget {
+  final String? hostEmail;
+  final String? hostName;
+  final VoidCallback onProceed;
+  const _EmbeddedWelcome({
+    required this.hostEmail,
+    required this.hostName,
+    required this.onProceed,
+  });
+
+  @override
+  State<_EmbeddedWelcome> createState() => _EmbeddedWelcomeState();
+}
+
+class _EmbeddedWelcomeState extends State<_EmbeddedWelcome> {
+  bool _loading = false;
+  String? _error;
+
+  bool get _hasHostUser => (widget.hostEmail ?? '').trim().isNotEmpty;
+
+  Future<void> _continueWithHost() async {
+    if (!_hasHostUser) {
+      widget.onProceed(); // no host user → go to sign-in/up
+      return;
+    }
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    final err = await context.read<AuthProvider>().signInAsHostUser(
+          widget.hostEmail!.trim(),
+          (widget.hostName ?? '').trim(),
+        );
+    if (!mounted) return;
+    setState(() => _loading = false);
+    final lower = err?.toLowerCase() ?? '';
+    if (err == null) {
+      widget.onProceed(); // signed in → home
+    } else if (lower.contains('already has a tdlf') ||
+        lower.contains('sign in with your password')) {
+      // Their email already has a TDLF-Educ account — go straight to a
+      // pre-filled sign-in (this is also the cross-app sync path).
+      widget.onProceed();
+    } else {
+      setState(() => _error = err);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final firstName = (widget.hostName ?? '').trim().split(' ').first;
     return Scaffold(
       body: AuroraBackground(
         child: SafeArea(
@@ -183,36 +271,73 @@ class _EmbeddedWelcome extends StatelessWidget {
               children: [
                 const Spacer(flex: 3),
                 const AppLogo(size: 116, showWordmark: true),
-                const Spacer(flex: 2),
+                const SizedBox(height: 18),
+                Text(
+                  _hasHostUser && firstName.isNotEmpty
+                      ? 'Welcome, $firstName!'
+                      : 'Welcome!',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: cs.onSurface),
+                ),
+                const SizedBox(height: 6),
                 Text(
                   'Books and quizzes for every subject — built to work even '
                   'offline.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 14,
-                    height: 1.4,
-                    color: cs.onSurfaceVariant,
-                  ),
+                      fontSize: 13.5, height: 1.4, color: cs.onSurfaceVariant),
                 ),
+                if (_error != null) ...[
+                  const SizedBox(height: 14),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: cs.errorContainer.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(_error!,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontSize: 12.5, color: cs.onErrorContainer)),
+                  ),
+                ],
                 const Spacer(flex: 3),
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton(
-                    onPressed: onContinue,
+                    onPressed: _loading ? null : _continueWithHost,
                     style: FilledButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16)),
                     ),
-                    child: const Text('Continue',
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w700)),
+                    child: _loading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white))
+                        : Text(
+                            _hasHostUser ? 'Continue' : 'Sign In / Sign Up',
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.w700)),
                   ),
                 ),
-                const SizedBox(height: 6),
+                if (_hasHostUser) ...[
+                  const SizedBox(height: 2),
+                  TextButton(
+                    onPressed: _loading ? null : widget.onProceed,
+                    child: const Text('Use a TDLF-Educ account instead'),
+                  ),
+                ],
                 TextButton(
-                  onPressed: () =>
-                      Navigator.of(context, rootNavigator: true).maybePop(),
+                  onPressed: _loading
+                      ? null
+                      : () =>
+                          Navigator.of(context, rootNavigator: true).maybePop(),
                   child: const Text('Back to Tawi-Tawi'),
                 ),
               ],

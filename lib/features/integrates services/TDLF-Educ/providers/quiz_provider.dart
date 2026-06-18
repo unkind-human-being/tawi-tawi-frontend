@@ -31,6 +31,20 @@ class QuizProvider extends ChangeNotifier {
   bool get showResults => _showResults;
   bool get isPassed => _quizScore >= AppConfig.passingScore;
 
+  // Guard async notifyListeners() after dispose (leaving the module mid-fetch).
+  bool _disposed = false;
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
+  @override
+  void notifyListeners() {
+    if (_disposed) return;
+    super.notifyListeners();
+  }
+
   Future<void> fetchQuizzes() async {
     // Offline-first: show the local cache immediately…
     await _loadCachedQuizzes();
@@ -122,6 +136,23 @@ class QuizProvider extends ChangeNotifier {
   }
 
   Future<void> loadQuizHistory(String userId) async {
+    // Prefer the cloud so history follows the account across devices / the
+    // embedded app; fall back to the local cache when offline (or before the
+    // quiz_attempts table SQL has been run).
+    try {
+      final rows = await _apiService.getMyAttempts(userId);
+      _quizHistory = rows.map((r) {
+        final m = Map<String, dynamic>.from(r);
+        m['attempted_at'] = m['submitted_at'] ?? m['attempted_at'];
+        m['is_correct'] =
+            (m['is_correct'] == true || m['is_correct'] == 1) ? 1 : 0;
+        return m;
+      }).toList();
+      notifyListeners();
+      return;
+    } catch (_) {
+      // Cloud unavailable — use the local attempts.
+    }
     try {
       final db = await _dbService.database;
       final List<Map<String, dynamic>> result = await db.query(
@@ -225,6 +256,8 @@ class QuizProvider extends ChangeNotifier {
     try {
       int correctAnswers = 0;
       final db = await _dbService.database;
+      final now = DateTime.now().toIso8601String();
+      final cloudAttempts = <Map<String, dynamic>>[];
 
       for (var quiz in _activeQuizzes) {
         final quizId = quiz['quiz_id'] ?? quiz['id'];
@@ -239,7 +272,14 @@ class QuizProvider extends ChangeNotifier {
           'user_id': userId,
           'user_answer': userAnswer,
           'is_correct': isCorrect ? 1 : 0,
-          'attempted_at': DateTime.now().toIso8601String(),
+          'attempted_at': now,
+        });
+        cloudAttempts.add({
+          'student_id': userId,
+          'quiz_id': quizId.toString(),
+          'user_answer': userAnswer,
+          'is_correct': isCorrect,
+          'submitted_at': now,
         });
         _answeredQuizIds.add(quizId.toString()); // lock from being retaken
       }
@@ -248,6 +288,9 @@ class QuizProvider extends ChangeNotifier {
       _showResults = true;
       notifyListeners();
 
+      // Per-question attempts to the cloud (history syncs across devices).
+      await _apiService.submitAttempts(cloudAttempts);
+
       await _apiService.submitQuizResults({
         'student_id': userId,
         'student_name': userName,
@@ -255,7 +298,7 @@ class QuizProvider extends ChangeNotifier {
         'total_questions': _activeQuizzes.length,
         'passed': _quizScore >= AppConfig.passingScore,
         'course_id': courseId, // lets teachers see only their course's results
-        'submitted_at': DateTime.now().toIso8601String(),
+        'submitted_at': now,
       });
     } catch (e) {
       _errorMessage = 'Error submitting quiz: $e';

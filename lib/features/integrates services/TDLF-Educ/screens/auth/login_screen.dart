@@ -9,7 +9,10 @@ import '../../widgets/glass.dart';
 import '../../widgets/app_logo.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  /// Pre-fills the sign-in email (e.g. when a host user is sent here to sign in
+  /// with their existing TDLF-Educ account).
+  final String? prefillEmail;
+  const LoginScreen({super.key, this.prefillEmail});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -33,7 +36,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    _emailCtrl = TextEditingController();
+    _emailCtrl = TextEditingController(text: widget.prefillEmail ?? '');
     _passwordCtrl = TextEditingController();
     _usernameCtrl = TextEditingController();
     _signupEmailCtrl = TextEditingController();

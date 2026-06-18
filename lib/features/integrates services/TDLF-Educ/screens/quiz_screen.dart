@@ -1207,70 +1207,257 @@ class _HistoryTab extends StatelessWidget {
           );
         }
 
+        // Look up each attempt's quiz so we can show the question, the correct
+        // answer and the explanation (attempts only store the user's answer).
+        final quizById = <String, Map<String, dynamic>>{
+          for (final q in provider.quizzes)
+            (q['quiz_id'] ?? q['id'] ?? '').toString(): q,
+        };
+
         return RefreshIndicator(
           onRefresh: () => context.read<QuizProvider>().loadQuizHistory(userId),
           child: ListView.builder(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-          itemCount: provider.quizHistory.length,
-          itemBuilder: (context, index) {
-            final attempt = provider.quizHistory[index];
-            final isCorrect = attempt['is_correct'] == 1;
-            final date = attempt['attempted_at']?.toString().split('T')[0] ?? '';
+            itemCount: provider.quizHistory.length,
+            itemBuilder: (context, index) {
+              final attempt = provider.quizHistory[index];
+              final isCorrect = attempt['is_correct'] == 1;
+              final date =
+                  attempt['attempted_at']?.toString().split('T')[0] ?? '';
+              final quiz = quizById[(attempt['quiz_id'] ?? '').toString()];
+              final question = quiz?['question']?.toString() ?? 'Quiz question';
+              final correct = quiz?['correct_answer']?.toString() ?? '';
+              final reason = quiz?['reason']?.toString() ?? '';
+              final userAnswer = (attempt['user_answer'] ?? '').toString();
 
-            return Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: cs.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: isCorrect ? cs.primaryContainer : cs.errorContainer,
-                      borderRadius: BorderRadius.circular(10),
+              return Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                decoration: BoxDecoration(
+                  color: cs.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: cs.outlineVariant),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => _showDetail(
+                      context,
+                      question: question,
+                      userAnswer: userAnswer,
+                      correct: correct,
+                      reason: reason,
+                      isCorrect: isCorrect,
+                      date: date,
+                      type: (quiz?['quiz_type'] ?? '').toString(),
                     ),
-                    child: Icon(
-                      isCorrect ? Icons.check_rounded : Icons.close_rounded,
-                      color: isCorrect ? cs.onPrimaryContainer : cs.onErrorContainer,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          isCorrect ? 'Correct' : 'Incorrect',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: cs.onSurface,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: isCorrect
+                                  ? cs.primaryContainer
+                                  : cs.errorContainer,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(
+                              isCorrect
+                                  ? Icons.check_rounded
+                                  : Icons.close_rounded,
+                              color: isCorrect
+                                  ? cs.onPrimaryContainer
+                                  : cs.onErrorContainer,
+                              size: 20,
+                            ),
                           ),
-                        ),
-                        Text(
-                          'Answer: ${attempt['user_answer'] ?? 'Not answered'}',
-                          style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
-                        ),
-                      ],
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  question,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: cs.onSurface),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  'Your answer: ${userAnswer.isEmpty ? '—' : userAnswer}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      color: isCorrect ? cs.primary : cs.error),
+                                ),
+                                if (!isCorrect && correct.isNotEmpty)
+                                  Text(
+                                    'Correct: $correct',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        color: cs.onSurfaceVariant),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(date,
+                                  style: TextStyle(
+                                      fontSize: 10.5,
+                                      color: cs.onSurfaceVariant)),
+                              const SizedBox(height: 6),
+                              Icon(Icons.chevron_right_rounded,
+                                  size: 18, color: cs.onSurfaceVariant),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  Text(
-                    date,
-                    style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
-                  ),
-                ],
-              ),
-            );
-          },
+                ),
+              );
+            },
           ),
         );
       },
+    );
+  }
+
+  /// Full detail for one past attempt: question, the user's answer, the correct
+  /// answer and the explanation.
+  void _showDetail(
+    BuildContext context, {
+    required String question,
+    required String userAnswer,
+    required String correct,
+    required String reason,
+    required bool isCorrect,
+    required String date,
+    required String type,
+  }) {
+    final cs = Theme.of(context).colorScheme;
+    Widget label(String t) => Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Text(t,
+              style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1,
+                  color: cs.onSurfaceVariant)),
+        );
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: isCorrect
+                            ? cs.primaryContainer
+                            : cs.errorContainer,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(
+                            isCorrect
+                                ? Icons.check_circle_rounded
+                                : Icons.cancel_rounded,
+                            size: 15,
+                            color: isCorrect
+                                ? cs.onPrimaryContainer
+                                : cs.onErrorContainer),
+                        const SizedBox(width: 5),
+                        Text(isCorrect ? 'Correct' : 'Incorrect',
+                            style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: isCorrect
+                                    ? cs.onPrimaryContainer
+                                    : cs.onErrorContainer)),
+                      ]),
+                    ),
+                    const Spacer(),
+                    if (type.isNotEmpty)
+                      Text(quizTypeLabel(type),
+                          style: TextStyle(
+                              fontSize: 11.5, color: cs.onSurfaceVariant)),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                label('QUESTION'),
+                Text(question,
+                    style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        height: 1.35,
+                        color: cs.onSurface)),
+                const SizedBox(height: 16),
+                label('YOUR ANSWER'),
+                Text(userAnswer.isEmpty ? '—' : userAnswer,
+                    style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: isCorrect ? cs.primary : cs.error)),
+                const SizedBox(height: 16),
+                label('CORRECT ANSWER'),
+                Text(correct.isEmpty ? '—' : correct,
+                    style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: cs.primary)),
+                if (reason.trim().isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  label('EXPLANATION'),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: cs.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(reason,
+                        style: TextStyle(
+                            fontSize: 13,
+                            height: 1.4,
+                            color: cs.onSurface)),
+                  ),
+                ],
+                const SizedBox(height: 14),
+                Text('Answered on $date',
+                    style:
+                        TextStyle(fontSize: 11.5, color: cs.onSurfaceVariant)),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -1538,7 +1725,7 @@ class _QuestionScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       TextField(
-                        controller: answerCtrl..text = selectedAnswer ?? '',
+                        controller: answerCtrl,
                         maxLines: 4,
                         decoration: const InputDecoration(
                           hintText: 'e.g. item one, item two, item three',
@@ -1557,7 +1744,7 @@ class _QuestionScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       TextField(
-                        controller: answerCtrl..text = selectedAnswer ?? '',
+                        controller: answerCtrl,
                         decoration: const InputDecoration(
                           hintText: 'Type your answer here...',
                         ),
@@ -1575,8 +1762,12 @@ class _QuestionScreen extends StatelessWidget {
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () {
-                        answerCtrl.clear();
                         provider.previousQuestion();
+                        final q = provider
+                            .activeQuizzes[provider.currentQuestionIndex];
+                        answerCtrl.text = provider.userAnswers[
+                                (q['quiz_id'] ?? q['id'] ?? '').toString()] ??
+                            '';
                       },
                       icon: const Icon(Icons.arrow_back_rounded, size: 18),
                       label: const Text('Previous'),
@@ -1602,8 +1793,13 @@ class _QuestionScreen extends StatelessWidget {
                         )
                       : ElevatedButton.icon(
                           onPressed: () {
-                            answerCtrl.clear();
                             provider.nextQuestion();
+                            final q = provider
+                                .activeQuizzes[provider.currentQuestionIndex];
+                            answerCtrl.text = provider.userAnswers[
+                                    (q['quiz_id'] ?? q['id'] ?? '')
+                                        .toString()] ??
+                                '';
                           },
                           icon: const Icon(Icons.arrow_forward_rounded, size: 18),
                           label: const Text('Next'),

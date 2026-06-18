@@ -228,4 +228,26 @@ class ApiService {
       return [];
     }
   }
+
+  /// Saves per-question attempts to the cloud so the History tab syncs across
+  /// devices / the embedded app. Best-effort: if the table doesn't exist yet
+  /// (SQL not run), it silently no-ops and history stays local.
+  Future<void> submitAttempts(List<Map<String, dynamic>> attempts) async {
+    if (attempts.isEmpty) return;
+    try {
+      await _sb.from('quiz_attempts').insert(attempts);
+    } catch (_) {}
+  }
+
+  /// One student's own per-question attempts (the History tab). Throws if the
+  /// cloud is unreachable / the table is missing, so callers can fall back to
+  /// the local cache.
+  Future<List<Map<String, dynamic>>> getMyAttempts(String studentId) async {
+    final data = await _sb
+        .from('quiz_attempts')
+        .select()
+        .eq('student_id', studentId)
+        .order('submitted_at', ascending: false);
+    return List<Map<String, dynamic>>.from(data);
+  }
 }

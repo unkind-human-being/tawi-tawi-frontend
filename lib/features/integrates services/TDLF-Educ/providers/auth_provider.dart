@@ -23,15 +23,30 @@ class AuthProvider extends ChangeNotifier {
   /// after a guest signs in — so the "return to host" controls stay available.
   bool get isEmbedded => _isEmbedded;
 
-  /// [guest] is set by the host launcher (TdlfEducApp(guestMode: true)) so the
-  /// module opens straight into its content with no sign-in/sign-up screen.
-  AuthProvider({bool guest = false}) {
-    if (guest) {
-      _isEmbedded = true;
-      _seedGuest();
-    } else {
-      _initializeUser();
-    }
+  /// [embedded] is set by the host launcher (TdlfEducApp(embedded: true)).
+  /// In that mode the module stays signed-out until the welcome screen signs
+  /// the user in — automatically from their host (Tawi-Tawi) account, or
+  /// manually with their own TDLF-Educ account.
+  AuthProvider({bool embedded = false}) {
+    _isEmbedded = embedded;
+    // Load any persisted session on both standalone and embedded, so exiting
+    // and re-opening the module doesn't force a re-sign-in (the welcome only
+    // shows when there's no signed-in user).
+    _initializeUser();
+  }
+
+  // Guard async notifyListeners() after dispose (leaving the module mid-call).
+  bool _disposed = false;
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
+  @override
+  void notifyListeners() {
+    if (_disposed) return;
+    super.notifyListeners();
   }
 
   Future<void> _initializeUser() async {
@@ -48,20 +63,24 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Synthetic, read-only identity used when embedded in a host super-app.
-  void _seedGuest() {
-    _isGuest = true;
-    _currentUser = {
-      'id': 'guest',
-      'username': 'Guest',
-      'full_name': 'Guest',
-      'email': '',
-      'role': 'Student',
-      'course': '',
-      'student_id': '',
-      'grade_level': '',
-    };
+  /// Signs in using the host (Tawi-Tawi) account — a Supabase account derived
+  /// from their email, so it "flows in" with no extra sign-up. Returns `null`
+  /// on success, otherwise a message (e.g. the email already has its own
+  /// TDLF-Educ account → the caller routes to a normal password sign-in).
+  Future<String?> signInAsHostUser(String email, String fullName) async {
+    _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
+    final error =
+        await _authService.signInAsHostUser(email: email, fullName: fullName);
+    if (error == null) {
+      _currentUser = await _authService.getCurrentUser();
+      _isGuest = false;
+    }
+    _isLoading = false;
+    _errorMessage = error;
+    notifyListeners();
+    return error;
   }
 
   Future<bool> signUp({

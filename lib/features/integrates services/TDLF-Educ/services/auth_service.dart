@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'package:crypto/crypto.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../config/app_config.dart';
 
 /// Cloud authentication backed by Supabase Auth.
 ///
@@ -128,6 +130,68 @@ class AuthService {
     } catch (e) {
       return _friendlyAuthError(e, signingUp: false);
     }
+  }
+
+  /// Signs the user in using their **host (Tawi-Tawi) account**: a Supabase
+  /// account is derived from their email so it "flows in" with no extra sign-up.
+  /// Returns `null` on success, otherwise a message. If the email already has a
+  /// (separately created) TDLF-Educ account, the caller should fall back to a
+  /// normal password sign-in.
+  Future<String?> signInAsHostUser({
+    required String email,
+    required String fullName,
+  }) async {
+    final mail = email.trim();
+    if (mail.isEmpty) return 'No host account email was provided.';
+    final pw = _hostPassword(mail);
+
+    // 1) Try to sign in (account already provisioned on a previous open).
+    try {
+      final res = await _sb.auth.signInWithPassword(email: mail, password: pw);
+      if (res.user != null) {
+        await _fetchAndCacheProfile(res.user!.id);
+        return null;
+      }
+    } catch (_) {
+      // Not signed in yet — fall through to create the account.
+    }
+
+    // 2) Create it, then sign in.
+    try {
+      await _sb.auth.signUp(
+        email: mail,
+        password: pw,
+        data: {
+          'username': mail.split('@').first,
+          'full_name': fullName,
+          'role': 'Student',
+        },
+      );
+      if (_sb.auth.currentSession == null) {
+        await _sb.auth.signInWithPassword(email: mail, password: pw);
+      }
+      final uid = _sb.auth.currentUser?.id;
+      if (uid != null) await _fetchAndCacheProfile(uid);
+      return null;
+    } on AuthException catch (e) {
+      final m = e.message.toLowerCase();
+      if (m.contains('already registered') ||
+          m.contains('already been registered') ||
+          m.contains('user already exists')) {
+        return 'This email already has a TDLF-Educ account. '
+            'Please sign in with your password.';
+      }
+      return _friendlyAuthError(e, signingUp: true);
+    } catch (e) {
+      return _friendlyAuthError(e, signingUp: true);
+    }
+  }
+
+  /// Deterministic Supabase password for a host user (stable across devices).
+  String _hostPassword(String email) {
+    final digest = sha256.convert(
+        utf8.encode('${email.toLowerCase()}|${AppConfig.hostAccountSecret}'));
+    return 'tt_${digest.toString().substring(0, 28)}';
   }
 
   /// Returns the current user's profile, or `null` if not signed in.

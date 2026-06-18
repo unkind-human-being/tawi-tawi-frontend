@@ -26,6 +26,20 @@ class CourseProvider extends ChangeNotifier {
       _courses.isNotEmpty ? _courses : _defaults;
   bool get isLoading => _isLoading;
 
+  // Guard async notifyListeners() after dispose (leaving the module mid-fetch).
+  bool _disposed = false;
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
+  @override
+  void notifyListeners() {
+    if (_disposed) return;
+    super.notifyListeners();
+  }
+
   /// Resolves a course id to its title (or '' / the raw id if unknown).
   String titleFor(String? id) {
     if (id == null || id.isEmpty) return '';
