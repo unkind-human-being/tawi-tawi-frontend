@@ -88,14 +88,14 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     WidgetsBinding.instance.addObserver(this);
     unawaited(_loadCachedFeedThenRefresh());
     _loadStories();
-    _feedTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+    _feedTimer = Timer.periodic(const Duration(minutes: 3), (_) {
       _loadFeed(showSpinner: false);
       _loadStories();
     });
     if (widget.api.token.isNotEmpty) {
       _loadUnreadCount();
       _notifTimer = Timer.periodic(
-          const Duration(seconds: 30), (_) => _loadUnreadCount());
+          const Duration(minutes: 1), (_) => _loadUnreadCount());
     }
     _connectivitySub = SyncService.instance.onlineStream.listen((_) {
       if (SyncService.instance.isOnline) _loadFeed(showSpinner: false);
