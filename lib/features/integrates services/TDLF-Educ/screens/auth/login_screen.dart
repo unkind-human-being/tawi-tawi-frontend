@@ -77,9 +77,8 @@ class _LoginScreenState extends State<LoginScreen> {
       password: _passwordCtrl.text,
     );
     if (success && mounted) {
-      // If we were pushed on top (a guest tapping "Sign in" inside the embedded
-      // app), just pop — the app underneath rebuilds as the now-real user.
-      // Otherwise (standalone first launch) go to the home route.
+      // If this screen was pushed on top of another route, pop so the app
+      // underneath rebuilds as the now-signed-in user; otherwise go to home.
       final nav = Navigator.of(context);
       if (nav.canPop()) {
         nav.pop();
@@ -139,17 +138,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 constraints: const BoxConstraints(maxWidth: 460),
                 child: Column(
                   children: [
-                    // Shown only when this screen was pushed on top (a guest in
-                    // the embedded app chose to sign in) — lets them go back.
-                    if (Navigator.of(context).canPop())
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: TextButton.icon(
-                          onPressed: () => Navigator.of(context).maybePop(),
-                          icon: const Icon(Icons.arrow_back_rounded, size: 18),
-                          label: const Text('Continue as guest'),
-                        ),
-                      ),
                     _buildHeader(context),
                     const SizedBox(height: 30),
                     _buildCard(context),

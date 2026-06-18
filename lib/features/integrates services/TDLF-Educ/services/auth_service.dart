@@ -236,6 +236,30 @@ class AuthService {
     return 'tt_${digest.toString().substring(0, 28)}';
   }
 
+  /// A minimal profile built **synchronously** from the already-restored
+  /// Supabase session (no network, no await). Returns `null` if not signed in.
+  ///
+  /// Used on launch / embedded re-entry so the app knows it's logged in on the
+  /// very first frame — otherwise `getCurrentUser()`'s async fetch leaves a gap
+  /// where the welcome/login screen flashes before the session resolves.
+  Map<String, dynamic>? sessionUserSync() {
+    try {
+      final u = _sb.auth.currentUser;
+      if (u == null) return null;
+      final meta = u.userMetadata ?? const {};
+      return {
+        'id': u.id,
+        'email': u.email ?? '',
+        'username':
+            (meta['username'] ?? u.email?.split('@').first ?? '').toString(),
+        'full_name': (meta['full_name'] ?? '').toString(),
+        'role': (meta['role'] ?? 'Student').toString(),
+      };
+    } catch (_) {
+      return null; // Supabase not initialized yet — treated as signed out.
+    }
+  }
+
   /// Returns the current user's profile, or `null` if not signed in.
   /// Refreshes from Supabase when online, falls back to the local cache offline.
   Future<Map<String, dynamic>?> getCurrentUser() async {

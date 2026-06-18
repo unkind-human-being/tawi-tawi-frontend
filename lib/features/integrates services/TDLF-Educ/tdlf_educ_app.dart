@@ -106,6 +106,10 @@ class _TdlfEducAppState extends State<TdlfEducApp> {
 
   @override
   Widget build(BuildContext context) {
+    // Already initialized (e.g. returning from the host) — build immediately so
+    // there's no loading-spinner flash on re-entry. The first launch still waits
+    // on the FutureBuilder below.
+    if (_initialized) return _buildApp(context);
     return FutureBuilder<void>(
       future: _ready,
       builder: (context, snapshot) {
@@ -121,25 +125,29 @@ class _TdlfEducAppState extends State<TdlfEducApp> {
             ),
           );
         }
-        return MultiProvider(
-          providers: [
-            ChangeNotifierProvider(create: (_) => ThemeProvider()),
-            ChangeNotifierProvider(
-                create: (_) => AuthProvider(embedded: widget.embedded)),
-            ChangeNotifierProvider(create: (_) => BookProvider()),
-            ChangeNotifierProvider(create: (_) => QuizProvider()),
-            ChangeNotifierProvider(create: (_) => CourseProvider()),
-          ],
-          child: _TdlfEducRoot(
-            embedded: widget.embedded,
-            hostEmail: widget.hostEmail,
-            hostName: widget.hostName,
-            // When opened from a host, show a branded welcome first.
-            showWelcome: widget.embedded && !_continued,
-            onProceed: () => setState(() => _continued = true),
-          ),
-        );
+        return _buildApp(context);
       },
+    );
+  }
+
+  Widget _buildApp(BuildContext context) {
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(
+            create: (_) => AuthProvider(embedded: widget.embedded)),
+        ChangeNotifierProvider(create: (_) => BookProvider()),
+        ChangeNotifierProvider(create: (_) => QuizProvider()),
+        ChangeNotifierProvider(create: (_) => CourseProvider()),
+      ],
+      child: _TdlfEducRoot(
+        embedded: widget.embedded,
+        hostEmail: widget.hostEmail,
+        hostName: widget.hostName,
+        // When opened from a host, show a branded welcome first.
+        showWelcome: widget.embedded && !_continued,
+        onProceed: () => setState(() => _continued = true),
+      ),
     );
   }
 }

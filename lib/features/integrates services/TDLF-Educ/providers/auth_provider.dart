@@ -7,7 +7,6 @@ class AuthProvider extends ChangeNotifier {
   Map<String, dynamic>? _currentUser;
   bool _isLoading = false;
   String? _errorMessage;
-  bool _isGuest = false;
   bool _isEmbedded = false;
 
   Map<String, dynamic>? get currentUser => _currentUser;
@@ -15,12 +14,8 @@ class AuthProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get isLoggedIn => _currentUser != null;
 
-  /// True while browsing without a real account (the synthetic guest identity).
-  /// Becomes false once the user signs in. Guests can't edit their profile.
-  bool get isGuest => _isGuest;
-
-  /// True for the whole lifetime of an embedded launch (host super-app), even
-  /// after a guest signs in — so the "return to host" controls stay available.
+  /// True for the whole lifetime of an embedded launch (host super-app), so the
+  /// "return to host" controls stay available.
   bool get isEmbedded => _isEmbedded;
 
   /// [embedded] is set by the host launcher (TdlfEducApp(embedded: true)).
@@ -50,7 +45,17 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> _initializeUser() async {
-    _currentUser = await _authService.getCurrentUser();
+    // Adopt an existing session synchronously (runs during construction, before
+    // the first await) so `isLoggedIn` is already true on the first frame — this
+    // is what stops the welcome/login screen flashing on embedded re-entry.
+    final cached = _authService.sessionUserSync();
+    if (cached != null) {
+      _currentUser = cached;
+      notifyListeners();
+    }
+    // Then refresh the full profile (course, student_id, etc.) from cloud/cache.
+    final full = await _authService.getCurrentUser();
+    if (full != null) _currentUser = full;
     notifyListeners();
   }
 
@@ -58,7 +63,6 @@ class AuthProvider extends ChangeNotifier {
   /// Used by the Profile screen's pull-to-refresh / reload so a stalled or
   /// not-yet-loaded session can be recovered without restarting the app.
   Future<void> refreshUser() async {
-    if (_isGuest) return; // guest identity is synthetic; nothing to refresh
     _currentUser = await _authService.getCurrentUser();
     notifyListeners();
   }
@@ -75,7 +79,6 @@ class AuthProvider extends ChangeNotifier {
         await _authService.signInAsHostUser(email: email, fullName: fullName);
     if (error == null) {
       _currentUser = await _authService.getCurrentUser();
-      _isGuest = false;
     }
     _isLoading = false;
     _errorMessage = error;
@@ -145,7 +148,6 @@ class AuthProvider extends ChangeNotifier {
 
       if (error == null) {
         _currentUser = await _authService.getCurrentUser();
-        _isGuest = false; // promoted from guest to a real, synced account
       }
 
       _isLoading = false;

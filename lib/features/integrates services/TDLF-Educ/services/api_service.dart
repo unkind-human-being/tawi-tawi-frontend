@@ -186,24 +186,6 @@ class ApiService {
     }
   }
 
-  Future<bool> submitQuizResults(Map<String, dynamic> data) async {
-    try {
-      await _sb.from('quiz_results').insert(data);
-      return true;
-    } catch (_) {
-      // Fallback for projects whose quiz_results table doesn't have the
-      // course_id column yet — submission must still succeed.
-      if (data.containsKey('course_id')) {
-        try {
-          final copy = Map<String, dynamic>.from(data)..remove('course_id');
-          await _sb.from('quiz_results').insert(copy);
-          return true;
-        } catch (_) {}
-      }
-      return false;
-    }
-  }
-
   /// All submitted quiz results (teacher "monitor students" view).
   Future<List<Map<String, dynamic>>> getStudents() async {
     try {
@@ -227,16 +209,6 @@ class ApiService {
     } catch (_) {
       return [];
     }
-  }
-
-  /// Saves per-question attempts to the cloud so the History tab syncs across
-  /// devices / the embedded app. Best-effort: if the table doesn't exist yet
-  /// (SQL not run), it silently no-ops and history stays local.
-  Future<void> submitAttempts(List<Map<String, dynamic>> attempts) async {
-    if (attempts.isEmpty) return;
-    try {
-      await _sb.from('quiz_attempts').insert(attempts);
-    } catch (_) {}
   }
 
   /// Strict variants used by the offline outbox: they THROW when the upload

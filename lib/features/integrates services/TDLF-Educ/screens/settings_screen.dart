@@ -148,6 +148,18 @@ class SettingsScreen extends StatelessWidget {
                       '• Dark mode support',
                       style: TextStyle(fontSize: 13, height: 1.6),
                     ),
+                    SizedBox(height: 12),
+                    Text(
+                      'Developers',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Abdu, Kamrashier Imlani\n'
+                      'Jumad, Harsamer Rabah\n'
+                      'Isbala, Ali-Risha Marjukin',
+                      style: TextStyle(fontSize: 13, height: 1.6),
+                    ),
                   ],
                 ),
               ),

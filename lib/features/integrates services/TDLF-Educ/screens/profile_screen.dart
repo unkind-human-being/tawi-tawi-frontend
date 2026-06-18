@@ -6,7 +6,6 @@ import '../providers/book_provider.dart';
 import '../providers/course_provider.dart';
 import '../config/app_config.dart';
 import '../theme/app_theme.dart';
-import 'auth/login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -21,15 +20,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   /// Reloads the session/profile, cloud-synced quiz stats and faculty list.
   /// Used on open, on pull-to-refresh / Reload, and automatically when the
-  /// signed-in user changes (e.g. a guest signs in) so a stalled or not-yet-
-  /// loaded profile recovers without restarting the app.
+  /// signed-in user changes so a stalled or not-yet-loaded profile recovers
+  /// without restarting the app.
   Future<void> _refresh() async {
     final auth = context.read<AuthProvider>();
     final quiz = context.read<QuizProvider>();
     await auth.refreshUser();
     if (!mounted) return;
     final user = auth.currentUser;
-    if (user != null && !auth.isGuest) {
+    if (user != null) {
       final id = user['id'].toString();
       await quiz.loadCloudResults(id);
       await quiz.loadQuizHistory(id);
@@ -211,9 +210,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final user = auth.currentUser;
         final isTeacher = user?['role'] == 'Teacher';
         // Load (or reload) this user's synced stats the first time we see them
-        // and again whenever the signed-in user changes (e.g. a guest signs in).
+        // and again whenever the signed-in user changes.
         final uid = user?['id']?.toString();
-        if (uid != null && !auth.isGuest && uid != _loadedForUserId) {
+        if (uid != null && uid != _loadedForUserId) {
           _loadedForUserId = uid;
           WidgetsBinding.instance.addPostFrameCallback((_) => _refresh());
         }
@@ -221,14 +220,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
           appBar: AppBar(
             title: const Text('Profile'),
             actions: [
-              if (!auth.isGuest)
-                IconButton(
-                  icon: const Icon(Icons.refresh_rounded),
-                  tooltip: 'Reload',
-                  onPressed: _refresh,
-                ),
-              // Guests have no real account, so no editing.
-              if (user != null && !auth.isGuest)
+              IconButton(
+                icon: const Icon(Icons.refresh_rounded),
+                tooltip: 'Reload',
+                onPressed: _refresh,
+              ),
+              if (user != null)
                 IconButton(
                   icon: const Icon(Icons.edit_rounded),
                   tooltip: 'Edit Profile',
@@ -238,70 +235,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           body: user == null
               ? _buildLoading(context)
-              : auth.isGuest
-                  ? _buildGuestProfile(context)
-                  : (isTeacher
-                      ? _buildTeacherProfile(context, user)
-                      : _buildStudentProfile(context, user)),
+              : (isTeacher
+                  ? _buildTeacherProfile(context, user)
+                  : _buildStudentProfile(context, user)),
         );
       },
-    );
-  }
-
-  /// Profile view for a guest (embedded, not signed in). No editing — instead
-  /// offer to sign in / sign up for a real, synced account, or keep browsing.
-  Widget _buildGuestProfile(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final decor = AppDecoration.of(context);
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        const SizedBox(height: 24),
-        Center(
-          child: Container(
-            width: 88,
-            height: 88,
-            decoration: BoxDecoration(
-              gradient: decor.brand,
-              shape: BoxShape.circle,
-              boxShadow: decor.glow(0.3),
-            ),
-            child: const Icon(Icons.person_outline_rounded,
-                size: 44, color: Colors.white),
-          ),
-        ),
-        const SizedBox(height: 16),
-        Text('Browsing as Guest',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                color: cs.onSurface)),
-        const SizedBox(height: 8),
-        Text(
-          'Sign in or create an account to save your quiz progress, edit your '
-          'profile, and sync across devices.',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-              fontSize: 13.5, color: cs.onSurfaceVariant, height: 1.4),
-        ),
-        const SizedBox(height: 24),
-        FilledButton.icon(
-          onPressed: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const LoginScreen()),
-          ),
-          icon: const Icon(Icons.login_rounded),
-          label: const Text('Sign In / Sign Up'),
-          style: FilledButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 14),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Center(
-          child: Text('Or keep browsing as a guest.',
-              style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
-        ),
-      ],
     );
   }
 
