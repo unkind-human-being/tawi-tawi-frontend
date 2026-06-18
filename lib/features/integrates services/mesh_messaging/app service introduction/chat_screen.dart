@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
+import '../../../../core/channels/app_channels.dart';
 
 class ChatScreen extends StatefulWidget {
   final String threadId;
@@ -17,8 +18,6 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  static const platform = MethodChannel('com.rhyn.reach/messaging');
-  static const chatEvents = EventChannel('com.rhyn.reach/chat_events');
   final TextEditingController _controller = TextEditingController();
   List<String> _messages = [];
   StreamSubscription? _chatSubscription;
@@ -26,7 +25,7 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
-    _chatSubscription = chatEvents.receiveBroadcastStream(widget.threadId).listen((dynamic event) {
+    _chatSubscription = AppChannels.chatEvents.receiveBroadcastStream(widget.threadId).listen((dynamic event) {
       if (mounted) {
         setState(() {
           _messages = List<String>.from(event).reversed.toList();
@@ -51,7 +50,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _controller.clear();
 
     try {
-      await platform.invokeMethod('sendMessage', {
+      await AppChannels.messaging.invokeMethod('sendMessage', {
         'threadId': widget.threadId,
         'targetName': widget.displayName.split(' (')[0],
         'messageText': text,

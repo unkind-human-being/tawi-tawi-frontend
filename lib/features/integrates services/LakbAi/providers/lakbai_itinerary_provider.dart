@@ -17,7 +17,7 @@ class LakbaiItineraryProvider extends ChangeNotifier {
   
   final _secureStorage = const FlutterSecureStorage();
 
-  //  SAFELY INITIALIZE HIVE ON DEMAND INSTEAD OF CRASHING ON APP START
+  // SAFELY INITIALIZE HIVE ON DEMAND INSTEAD OF CRASHING ON APP START
   Future<Box> _getBox() async {
     await Hive.initFlutter();
     if (!Hive.isBoxOpen('destinationsBox')) {
@@ -27,7 +27,8 @@ class LakbaiItineraryProvider extends ChangeNotifier {
   }
 
   Future<Map<String, String>> _getHeaders() async {
-    final token = await _secureStorage.read(key: 'jwt_token');
+    // ✅ CHANGED: Replaced 'jwt_token' with 'lakbai_jwt_token' right here!
+    final token = await _secureStorage.read(key: 'lakbai_jwt_token');
     return {
       'Content-Type': 'application/json',
       if (token != null) 'Authorization': 'Bearer $token',
@@ -35,7 +36,7 @@ class LakbaiItineraryProvider extends ChangeNotifier {
   }
 
   Future<void> fetchSavedItineraries() async {
-    final box = await _getBox(); //  Uses our safe box
+    final box = await _getBox(); 
     final cached = box.get('cached_itineraries');
     
     if (cached != null) {
@@ -57,7 +58,7 @@ class LakbaiItineraryProvider extends ChangeNotifier {
       
       if (response.statusCode == 200) {
         _itineraries = jsonDecode(response.body);
-        await box.put('cached_itineraries', response.body); //  Uses our safe box
+        await box.put('cached_itineraries', response.body); 
       }
     } catch (e) {
       debugPrint('Network execution timeout fallback.');
@@ -68,7 +69,7 @@ class LakbaiItineraryProvider extends ChangeNotifier {
   }
 
   Future<void> addManualDestination(String destinationName) async {
-    final box = await _getBox(); //  Uses our safe box
+    final box = await _getBox(); 
     
     try {
       final headers = await _getHeaders();
@@ -95,13 +96,13 @@ class LakbaiItineraryProvider extends ChangeNotifier {
         'content': 'Pending Sync: Connect to Wi-Fi to backup to database.'
       };
       _itineraries.insert(0, tempItem);
-      await box.put('cached_itineraries', jsonEncode(_itineraries)); // 
+      await box.put('cached_itineraries', jsonEncode(_itineraries)); 
 
       List<dynamic> pending = [];
       final storedPending = box.get('pending_manual');
       if (storedPending != null) pending = jsonDecode(storedPending);
       pending.add(tempItem);
-      await box.put('pending_manual', jsonEncode(pending)); // 
+      await box.put('pending_manual', jsonEncode(pending)); 
 
       notifyListeners();
     }
@@ -112,7 +113,7 @@ class LakbaiItineraryProvider extends ChangeNotifier {
     _currentAiResult = '';
     notifyListeners();
 
-    final box = await _getBox(); //  Uses our safe box
+    final box = await _getBox(); 
     
     final requestData = {
       'destination': destination,
@@ -150,7 +151,7 @@ class LakbaiItineraryProvider extends ChangeNotifier {
       final storedAi = box.get('pending_ai');
       if (storedAi != null) pendingAi = jsonDecode(storedAi);
       pendingAi.add(requestData);
-      await box.put('pending_ai', jsonEncode(pendingAi)); // 
+      await box.put('pending_ai', jsonEncode(pendingAi)); 
 
       final tempItem = {
         '_id': 'temp_ai_${DateTime.now().millisecondsSinceEpoch}',
@@ -161,7 +162,7 @@ class LakbaiItineraryProvider extends ChangeNotifier {
         'content': '⏳ AI Generation Queued. Connect to Wi-Fi and we will automatically write your itinerary in the background!'
       };
       _itineraries.insert(0, tempItem);
-      await box.put('cached_itineraries', jsonEncode(_itineraries)); // 
+      await box.put('cached_itineraries', jsonEncode(_itineraries)); 
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -169,7 +170,7 @@ class LakbaiItineraryProvider extends ChangeNotifier {
   }
 
   Future<void> deleteItinerary(String id) async {
-    final box = await _getBox(); //  Uses our safe box
+    final box = await _getBox(); 
     
     try {
       final headers = await _getHeaders();
@@ -179,7 +180,7 @@ class LakbaiItineraryProvider extends ChangeNotifier {
       ).timeout(const Duration(seconds: 10));
       if (response.statusCode == 200) {
         _itineraries.removeWhere((item) => item['_id'] == id);
-        await box.put('cached_itineraries', jsonEncode(_itineraries)); // 
+        await box.put('cached_itineraries', jsonEncode(_itineraries)); 
         notifyListeners();
       }
     } catch (e) {
@@ -203,7 +204,7 @@ class LakbaiItineraryProvider extends ChangeNotifier {
 
   Future<void> _syncPendingRequests() async {
     final headers = await _getHeaders();
-    final box = await _getBox(); //  Uses our safe box
+    final box = await _getBox(); 
 
     final storedManual = box.get('pending_manual');
     if (storedManual != null) {
@@ -228,7 +229,7 @@ class LakbaiItineraryProvider extends ChangeNotifier {
           stillPendingManual.add(item);
         }
       }
-      await box.put('pending_manual', jsonEncode(stillPendingManual)); // 
+      await box.put('pending_manual', jsonEncode(stillPendingManual)); 
     }
 
     final storedAi = box.get('pending_ai');
@@ -260,7 +261,7 @@ class LakbaiItineraryProvider extends ChangeNotifier {
           stillPendingAi.add(item);
         }
       }
-      await box.put('pending_ai', jsonEncode(stillPendingAi)); // 
+      await box.put('pending_ai', jsonEncode(stillPendingAi)); 
     }
   }
 }

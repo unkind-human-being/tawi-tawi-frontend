@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:convert'; 
-import 'package:provider/provider.dart'; // <-- ADDED FOR PLANNER
-import '../providers/lakbai_itinerary_provider.dart'; // <-- ADDED FOR PLANNER
+import 'package:provider/provider.dart'; 
+import '../providers/lakbai_itinerary_provider.dart'; 
 
 class LakbaiDestinationDetailsScreen extends StatelessWidget {
   final Map<String, dynamic> destination;
 
   const LakbaiDestinationDetailsScreen({super.key, required this.destination});
 
+  // ✅ SMART IMAGE BUILDER
   Widget _buildImage(String rawImageUrl) {
     if (rawImageUrl.isEmpty) {
       return Image.asset('assets/images/hero-bg.jpg', fit: BoxFit.cover, width: double.infinity);
@@ -29,7 +29,8 @@ class LakbaiDestinationDetailsScreen extends StatelessWidget {
       return Image.network(rawImageUrl, fit: BoxFit.cover, width: double.infinity, errorBuilder: (c, e, s) => Image.asset('assets/images/hero-bg.jpg', fit: BoxFit.cover, width: double.infinity));
     } 
     else {
-      return Image.network('http://localhost:3000/$rawImageUrl', fit: BoxFit.cover, width: double.infinity, errorBuilder: (c, e, s) => Image.asset('assets/images/hero-bg.jpg', fit: BoxFit.cover, width: double.infinity));
+      // ✅ FIXED: Look in the assets folder instead of localhost!
+      return Image.asset('assets/images/$rawImageUrl', fit: BoxFit.cover, width: double.infinity, errorBuilder: (c, e, s) => Image.asset('assets/images/hero-bg.jpg', fit: BoxFit.cover, width: double.infinity));
     }
   }
 
@@ -56,7 +57,8 @@ class LakbaiDestinationDetailsScreen extends StatelessWidget {
           decoration: BoxDecoration(color: Colors.white.withOpacity(0.8), shape: BoxShape.circle),
           child: IconButton(
             icon: const Icon(LucideIcons.arrowLeft, color: Color(0xFF064E3B)),
-            onPressed: () => context.pop(),
+            // ✅ FIXED: Standard Navigator pop instead of go_router
+            onPressed: () => Navigator.pop(context),
           ),
         ),
       ),
@@ -118,7 +120,7 @@ class LakbaiDestinationDetailsScreen extends StatelessWidget {
                   
                   const SizedBox(height: 40),
                   
-                  // 5. Bottom Action Buttons
+                  // Bottom Action Buttons
                   Row(
                     children: [
                       Expanded(

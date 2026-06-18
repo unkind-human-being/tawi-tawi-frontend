@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
 import 'chat_screen.dart';
+import '../../../../core/channels/app_channels.dart';
 
 class NearbyScreen extends StatefulWidget {
   const NearbyScreen({super.key});
@@ -11,7 +12,6 @@ class NearbyScreen extends StatefulWidget {
 }
 
 class _NearbyScreenState extends State<NearbyScreen> {
-  static const platform = MethodChannel('com.rhyn.reach/messaging');
   List<String> _devices = [];
   Timer? _timer;
 
@@ -33,7 +33,7 @@ class _NearbyScreenState extends State<NearbyScreen> {
 
   Future<void> _fetchDevices() async {
     try {
-      final List<dynamic> result = await platform.invokeMethod('getNearbyDevices');
+      final List<dynamic> result = await AppChannels.messaging.invokeMethod('getNearbyDevices');
       setState(() {
         _devices = result.cast<String>();
       });
