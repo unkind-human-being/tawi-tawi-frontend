@@ -140,6 +140,23 @@ class MarketplaceApi {
     }
   }
 
+  /// Fetches the real HanapGawa identity from the backend and updates storedUser.
+  /// Always use this after initWithToken in the Kawman flow so the backend is
+  /// the source of truth for who is logged in (correct role, correct UUID).
+  Future<void> fetchAndStoreIdentity() async {
+    try {
+      final res = await _get('/auth/me', auth: true);
+      final userMap = res['user'] as Map<String, dynamic>?;
+      if (userMap != null) {
+        final user = SessionUser.fromJson(userMap);
+        await _prefs.setString(_userKey, jsonEncode(user.toJson()));
+        storedUser = user;
+      }
+    } catch (_) {
+      // Fall back to whatever initWithToken set — better than crashing.
+    }
+  }
+
   Future<void> updateFullName(String fullName) async {
     final res = await _patch('/auth/me/name', {'fullName': fullName}, auth: true);
     final userMap = res['user'] as Map<String, dynamic>?;
