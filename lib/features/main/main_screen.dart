@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import '../home/home_screen.dart';
 import '../profile/profile_screen.dart';
+import '../profile/history/history_screen.dart';
 import '../integrates services/mesh_messaging/app service introduction/inbox_screen.dart';
 
 class MainScreen extends StatefulWidget {
@@ -22,13 +23,13 @@ class _MainScreenState extends State<MainScreen> {
     _pages = [
       HomeScreen(onSwitchTab: _onNavTapped),
       const InboxScreen(),
-      const Scaffold(body: Center(child: Text('History Coming Soon'))),
+      const HistoryScreen(),
       const ProfileScreen(),
     ];
   }
 
   void _onNavTapped(int index) {
-    if (index == 0 || index == 1 || index == 3) {
+    if (index >= 0 && index <= 3) {
       setState(() {
         _currentIndex = index;
       });
