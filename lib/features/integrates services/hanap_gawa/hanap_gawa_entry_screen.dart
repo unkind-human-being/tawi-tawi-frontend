@@ -51,18 +51,19 @@ class _HanapGawaEntryScreenState extends State<HanapGawaEntryScreen> {
         return;
       }
 
-      // If a different Kawman user opens HanapGawa, wipe the previous user's cache
-      // so stale data from account1 doesn't bleed into account2's session.
+      // In the Kawman flow the token is always injected fresh from Kawman auth,
+      // so we never want a cached HanapGawa identity from a previous session.
+      // Clear identity prefs every open; ssoInit will restore the correct user.
       final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('hanapgawa_user');
+      await prefs.remove('hanapgawa_token');
+
+      // Wipe SQLite cache when the Kawman user changes so account data doesn't bleed.
       const _lastUserKey = 'hanapgawa_last_kawman_user';
       final lastUserId = prefs.getString(_lastUserKey) ?? '';
       final currentUserId = tawiUser?.id ?? '';
       if (currentUserId.isNotEmpty && lastUserId != currentUserId) {
         await LocalDb.instance.clearUserData();
-        // Also clear the stored HanapGawa user from SharedPreferences so
-        // initWithToken doesn't load the previous user's identity.
-        await prefs.remove('hanapgawa_user');
-        await prefs.remove('hanapgawa_token');
         await prefs.setString(_lastUserKey, currentUserId);
       }
 
