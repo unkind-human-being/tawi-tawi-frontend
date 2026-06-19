@@ -59,6 +59,10 @@ class _HanapGawaEntryScreenState extends State<HanapGawaEntryScreen> {
       final currentUserId = tawiUser?.id ?? '';
       if (currentUserId.isNotEmpty && lastUserId != currentUserId) {
         await LocalDb.instance.clearUserData();
+        // Also clear the stored HanapGawa user from SharedPreferences so
+        // initWithToken doesn't load the previous user's identity.
+        await prefs.remove('hanapgawa_user');
+        await prefs.remove('hanapgawa_token');
         await prefs.setString(_lastUserKey, currentUserId);
       }
 
