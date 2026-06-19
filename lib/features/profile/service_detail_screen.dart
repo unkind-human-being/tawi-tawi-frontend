@@ -17,7 +17,11 @@ const Map<String, String> serviceDescriptions = {
   
   'SOCIAL HEALTH UPDATE': 'Stay up to date with vital health updates, clinic schedules, and integrated public health modules directly from the RHU.',
   
-  'HanapGawa': 'HanapGawa offers a comprehensive platform for finding and booking local services. From electricians to tutors, we connect you with verified professionals in your area.',
+  'HanapGawa': 'HanapGawa is a local job marketplace and community platform built for the people of Bongao. It connects workers and clients directly—making it easier for residents to find skilled professionals nearby and for job seekers to discover opportunities in their own community.\n\n'
+      'The platform supports multiple types of posts: job listings let employers advertise vacancies with full details and requirements, while service offerings allow workers and freelancers to promote their skills and set their own rates. A social community feed keeps professionals and clients connected, sharing updates and news within the local workforce.\n\n'
+      'Workers can build detailed profiles showcasing their skills, experience, and availability. Clients can browse and filter talent by skill or rating, apply directly, or send booking requests. A built-in rating and review system ensures trust and transparency on both sides—so every hiring decision is informed and every worker\'s reputation is earned.\n\n'
+      'HanapGawa includes real-time direct messaging and instant notifications so job offers, booking confirmations, and responses are never delayed. Listings and users are monitored through platform admin tools to keep the environment safe and fair for everyone.\n\n'
+      'Integrated into the Kawman ecosystem, HanapGawa automatically links your Kawman account—no separate sign-up needed. Your identity and profile are securely managed across sessions, so accessing local work opportunities in Bongao is always just one tap away.',
 };
 
 class ServiceDetailScreen extends StatelessWidget {
