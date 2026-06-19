@@ -13,6 +13,9 @@ import 'commuter_notifications_screen.dart';
 // <-- REQUIRED IMPORT FOR THE SYNC BUTTON -->
 import '../../sync_engine/services/sync_service.dart'; 
 
+// <-- FIXED: EXACT IMPORT PATH TO YOUR TAWI-TAWI MAIN HUB SCREEN -->
+import '../../../../../../main/main_screen.dart';
+
 class CommuterAppScreen extends StatefulWidget {
   final String fullName;
   final String initials;
@@ -237,7 +240,12 @@ class _CommuterAppScreenState extends State<CommuterAppScreen> with SingleTicker
             _selectedIndex = 0;
           });
         } else {
-          SystemNavigator.pop();
+          // <-- FIXED: REPLACED APP CLOSING TRAP WITH A CLEAN RETURN TO THE TAWI-TAWI HOME SHELL -->
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => const MainScreen()),
+            (route) => false,
+          );
         }
       },
       child: Scaffold(
