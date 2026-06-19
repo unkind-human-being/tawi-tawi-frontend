@@ -240,7 +240,7 @@ class _CommuterAppScreenState extends State<CommuterAppScreen> with SingleTicker
             _selectedIndex = 0;
           });
         } else {
-          // <-- FIXED: REPLACED APP CLOSING TRAP WITH A CLEAN RETURN TO THE TAWI-TAWI HOME SHELL -->
+
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (context) => const MainScreen()),
