@@ -70,11 +70,6 @@ class _HanapGawaEntryScreenState extends State<HanapGawaEntryScreen> {
 
       await api.initWithToken(token, user: sessionUser);
 
-      // Backend-driven identity check: ask the backend who this token belongs to.
-      // This ensures the correct HanapGawa account (with the real role) is loaded
-      // regardless of what was cached locally from a previous session.
-      await api.fetchAndStoreIdentity();
-
       // Register/link the Tawi-Tawi user into HanapGawa's database.
       // Runs in the background — a 429 from Render's edge must not block
       // the app from loading. The upsert is cached per-user (1 hour TTL)
