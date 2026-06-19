@@ -74,12 +74,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Future<void> _handleDone() async {
     if (_loading) return;
+    final accepted = await _showTermsSheet();
+    if (accepted != true || !mounted) return;
     setState(() => _loading = true);
     try {
       await widget.onDone();
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Future<bool?> _showTermsSheet() {
+    return showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const _TermsSheet(),
+    );
   }
 
   @override
@@ -472,6 +483,308 @@ class _BookPage extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _TermsSheet extends StatefulWidget {
+  const _TermsSheet();
+
+  @override
+  State<_TermsSheet> createState() => _TermsSheetState();
+}
+
+class _TermsSheetState extends State<_TermsSheet> {
+  bool _accepted = false;
+  bool _scrolledToBottom = false;
+  final _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(() {
+      if (!_scrolledToBottom) {
+        final pos = _scrollController.position;
+        if (pos.pixels >= pos.maxScrollExtent - 40) {
+          setState(() => _scrolledToBottom = true);
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return DraggableScrollableSheet(
+      initialChildSize: 0.92,
+      maxChildSize: 0.97,
+      minChildSize: 0.6,
+      builder: (ctx, outer) => Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFFFFFBF4),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: Column(
+          children: [
+            const SizedBox(height: 10),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: appPrimary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.gavel_rounded, color: appPrimary, size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Terms & Conditions',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w900,
+                            color: const Color(0xFF1C1917),
+                          ),
+                        ),
+                        const Text(
+                          'Please read before using Hanap Gawa',
+                          style: TextStyle(fontSize: 12, color: appMuted),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Divider(height: 1),
+            Expanded(
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+                child: const _TermsContent(),
+              ),
+            ),
+            const Divider(height: 1),
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                  20, 12, 20, 16 + MediaQuery.viewInsetsOf(context).bottom),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (!_scrolledToBottom)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.keyboard_arrow_down_rounded,
+                              color: appMuted, size: 16),
+                          const SizedBox(width: 4),
+                          const Text(
+                            'Scroll down to read all terms',
+                            style: TextStyle(fontSize: 12, color: appMuted),
+                          ),
+                        ],
+                      ),
+                    ),
+                  InkWell(
+                    onTap: () => setState(() => _accepted = !_accepted),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Checkbox(
+                            value: _accepted,
+                            onChanged: (v) =>
+                                setState(() => _accepted = v ?? false),
+                            activeColor: appPrimary,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(4)),
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          const SizedBox(width: 4),
+                          const Expanded(
+                            child: Padding(
+                              padding: EdgeInsets.only(top: 12),
+                              child: Text(
+                                'I have read, understood, and agree to the Terms and Conditions of Hanap Gawa.',
+                                style: TextStyle(
+                                    fontSize: 13, fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  FilledButton(
+                    onPressed: _accepted
+                        ? () => Navigator.pop(context, true)
+                        : null,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: appPrimary,
+                      disabledBackgroundColor: Colors.grey.shade300,
+                      minimumSize: const Size.fromHeight(52),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
+                      textStyle: const TextStyle(
+                          fontWeight: FontWeight.w900, fontSize: 15),
+                    ),
+                    child: const Text('I Agree — Get Started'),
+                  ),
+                  const SizedBox(height: 4),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text(
+                      'Cancel',
+                      style: TextStyle(color: appMuted, fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TermsContent extends StatelessWidget {
+  const _TermsContent();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: const [
+        _TermsSection(
+          title: '1. Acceptance of Terms',
+          body:
+              'By using Hanap Gawa, you agree to be bound by these Terms and Conditions. If you do not agree, please do not use this application. These terms apply to all users, including clients, service providers, and agencies operating within the Tawi-Tawi region.',
+        ),
+        _TermsSection(
+          title: '2. Eligibility',
+          body:
+              'You must be at least 18 years old to use Hanap Gawa. By registering, you confirm that the information you provide is accurate, complete, and current. Accounts found to contain false information may be suspended or permanently removed.',
+        ),
+        _TermsSection(
+          title: '3. User Responsibilities',
+          body:
+              'You are solely responsible for all activity that occurs under your account. You agree not to misuse the platform, post false job listings, send fraudulent booking requests, or harass other users. Any content you post must not violate applicable Philippine laws.',
+        ),
+        _TermsSection(
+          title: '4. Bookings and Transactions',
+          body:
+              'Hanap Gawa facilitates connections between clients and service providers but is not a party to any agreement, booking, or transaction between them. We do not guarantee the quality, safety, or legality of services offered. Users transact at their own risk and are encouraged to review provider ratings and history.',
+        ),
+        _TermsSection(
+          title: '5. Payments',
+          body:
+              'Hanap Gawa does not process payments directly. Any financial arrangements are made between the client and the service provider. Disputes over payments must be resolved between the parties involved. Hanap Gawa is not liable for any financial loss arising from transactions conducted through the platform.',
+        ),
+        _TermsSection(
+          title: '6. Privacy and Data',
+          body:
+              'We collect and process personal information in accordance with the Data Privacy Act of 2012 (Republic Act No. 10173). Your data is used solely to operate and improve the platform. We do not sell your personal information to third parties. By using this app, you consent to the collection and use of your data as described in our Privacy Policy.',
+        ),
+        _TermsSection(
+          title: '7. Prohibited Conduct',
+          body:
+              'Users are prohibited from: posting illegal, offensive, or misleading content; impersonating another person or entity; attempting to gain unauthorized access to other accounts; using the platform for any unlawful purpose; and engaging in discriminatory behavior based on religion, ethnicity, gender, or disability.',
+        ),
+        _TermsSection(
+          title: '8. Account Suspension and Termination',
+          body:
+              'Hanap Gawa reserves the right to suspend or permanently terminate any account that violates these terms, engages in fraudulent activity, or poses a risk to other users or the platform. Decisions on suspension are at the sole discretion of the platform administrators.',
+        ),
+        _TermsSection(
+          title: '9. Limitation of Liability',
+          body:
+              'To the maximum extent permitted by law, Hanap Gawa and its operators are not liable for any indirect, incidental, or consequential damages arising from the use or inability to use the platform, including but not limited to loss of income, personal injury, or property damage resulting from services arranged through the app.',
+        ),
+        _TermsSection(
+          title: '10. Modifications to Terms',
+          body:
+              'We may update these Terms and Conditions from time to time. Continued use of the application after changes are posted constitutes your acceptance of the revised terms. We encourage you to review these terms periodically.',
+        ),
+        _TermsSection(
+          title: '11. Governing Law',
+          body:
+              'These Terms and Conditions are governed by the laws of the Republic of the Philippines. Any disputes arising from the use of this platform shall be subject to the jurisdiction of the courts in the Province of Tawi-Tawi.',
+        ),
+        _TermsSection(
+          title: '12. Contact',
+          body:
+              'If you have questions about these Terms and Conditions, please contact the Hanap Gawa support team through the app\'s feedback or help section.',
+        ),
+        SizedBox(height: 8),
+        Text(
+          'Last updated: June 2026',
+          style: TextStyle(fontSize: 12, color: appMuted),
+        ),
+        SizedBox(height: 4),
+      ],
+    );
+  }
+}
+
+class _TermsSection extends StatelessWidget {
+  const _TermsSection({required this.title, required this.body});
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 14,
+              color: Color(0xFF1C1917),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            body,
+            style: const TextStyle(
+              fontSize: 13.5,
+              height: 1.65,
+              color: Color(0xFF44403C),
+            ),
+          ),
+        ],
       ),
     );
   }
