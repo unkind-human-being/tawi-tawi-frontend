@@ -111,14 +111,15 @@ class MarketplaceApi {
   Future<void> initWithToken(String token, {SessionUser? user}) async {
     _prefs = await SharedPreferences.getInstance();
     await _prefs.setString(_tokenKey, token);
-    if (user != null) {
-      await _prefs.setString(_userKey, jsonEncode(user.toJson()));
+    // Always prefer the persisted user (saved by ssoInit with the real HanapGawa UUID).
+    // Fall back to `user` only on first launch when prefs is empty — ssoInit will
+    // overwrite prefs with the correct HanapGawa UUID before the app renders.
+    final raw = _prefs.getString(_userKey);
+    if (raw != null) {
+      storedUser = SessionUser.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    } else if (user != null) {
       storedUser = user;
-    } else {
-      final raw = _prefs.getString(_userKey);
-      if (raw != null) {
-        storedUser = SessionUser.fromJson(jsonDecode(raw) as Map<String, dynamic>);
-      }
+      // Don't persist — ssoInit will save the correct HanapGawa user to prefs.
     }
   }
 
