@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../auth/auth_provider.dart';
 import '../auth/login_screen.dart';
+import 'about_screen.dart';
 import 'settings/settings_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -190,11 +191,11 @@ class ProfileScreen extends StatelessWidget {
                         title: 'About Kawman',
                         subtitle: 'Learn about this public portal',
                         onTap: () {
-                          _showInfoSheet(
+                          Navigator.push(
                             context,
-                            title: 'About Kawman',
-                            message:
-                                'Kawman is a public access portal for local information, services, and integrated public modules such as RHU Social Health Updates.',
+                            MaterialPageRoute(
+                              builder: (context) => const AboutScreen(),
+                            ),
                           );
                         },
                       ),
