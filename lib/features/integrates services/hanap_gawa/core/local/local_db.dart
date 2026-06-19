@@ -603,31 +603,6 @@ class LocalDb {
     }
   }
 
-  // ── Session clear ──────────────────────────────────────────────────────────
-
-  Future<void> clearUserData() async {
-    if (kIsWeb) return;
-    final d = await db;
-    final batch = d.batch();
-    for (final table in [
-      'cached_feed',
-      'favorites',
-      'pending_actions',
-      'cached_messages',
-      'cached_notifications',
-      'cached_user',
-      'cached_bookings',
-      'cached_conversations',
-      'cached_jobs',
-      'cached_admin_data',
-      'cached_own_profile',
-      'kv_store',
-    ]) {
-      batch.delete(table);
-    }
-    await batch.commit(noResult: true);
-  }
-
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   int? _parseMs(dynamic value) {

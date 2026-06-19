@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -51,17 +53,6 @@ class _HanapGawaEntryScreenState extends State<HanapGawaEntryScreen> {
         return;
       }
 
-      // If a different Kawman user opens HanapGawa, wipe the previous user's cache
-      // so stale data from account1 doesn't bleed into account2's session.
-      final prefs = await SharedPreferences.getInstance();
-      const _lastUserKey = 'hanapgawa_last_kawman_user';
-      final lastUserId = prefs.getString(_lastUserKey) ?? '';
-      final currentUserId = tawiUser?.id ?? '';
-      if (currentUserId.isNotEmpty && lastUserId != currentUserId) {
-        await LocalDb.instance.clearUserData();
-        await prefs.setString(_lastUserKey, currentUserId);
-      }
-
       final api = MarketplaceApi(baseUrlOverride: _hanapGawaBaseUrl);
 
       // Build a minimal SessionUser from the Tawi-Tawi account
@@ -80,21 +71,29 @@ class _HanapGawaEntryScreenState extends State<HanapGawaEntryScreen> {
       await api.initWithToken(token, user: sessionUser);
 
       // Register/link the Tawi-Tawi user into HanapGawa's database.
-      // Cached per-user (1 hour TTL) so it only fires once per session.
+      // Runs in the background — a 429 from Render's edge must not block
+      // the app from loading. The upsert is cached per-user (1 hour TTL)
+      // so it only fires once per session, not on every open.
       if (tawiUser != null) {
-        final prefs = await SharedPreferences.getInstance();
-        final cacheKey = 'hanapgawa_sso_init_${tawiUser.id}';
-        final lastInit = prefs.getInt(cacheKey) ?? 0;
-        final hourAgo = DateTime.now()
-            .subtract(const Duration(hours: 1))
-            .millisecondsSinceEpoch;
-        if (lastInit < hourAgo) {
-          await api.ssoInit(
-            email: tawiUser.email,
-            fullName: tawiUser.fullName,
-          );
-          await prefs.setInt(cacheKey, DateTime.now().millisecondsSinceEpoch);
-        }
+        final userId = tawiUser.id;
+        final email = tawiUser.email;
+        final fullName = tawiUser.fullName;
+        unawaited(SharedPreferences.getInstance().then((prefs) async {
+          final cacheKey = 'hanapgawa_sso_init_$userId';
+          final lastInit = prefs.getInt(cacheKey) ?? 0;
+          final hourAgo = DateTime.now()
+              .subtract(const Duration(hours: 1))
+              .millisecondsSinceEpoch;
+          if (lastInit < hourAgo) {
+            try {
+              await api.ssoInit(email: email, fullName: fullName);
+              await prefs.setInt(
+                  cacheKey, DateTime.now().millisecondsSinceEpoch);
+            } catch (_) {
+              // Ignored — user may already be in DB from a prior session.
+            }
+          }
+        }));
       }
 
       if (!kIsWeb) {
