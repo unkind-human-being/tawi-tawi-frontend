@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../providers/lakbai_auth_provider.dart';
-import '../auth/lakbai_login_screen.dart';
 
 class LakbaiHomeScreen extends StatelessWidget {
   final Function(int)? onNavigateTab; // Receives the tab switcher function
@@ -37,14 +36,46 @@ class LakbaiHomeScreen extends StatelessWidget {
     ).animate().fadeIn(duration: 600.ms).slideX(begin: 0.1);
   }
 
+  // ✅ NEW: Developer Card Builder
+  Widget _buildDeveloperCard(String name, String role) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 30,
+            backgroundColor: const Color(0xFF059669).withOpacity(0.2),
+            child: const Icon(LucideIcons.user, color: Color(0xFF34D399), size: 30),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                const SizedBox(height: 4),
+                Text(role, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn(duration: 500.ms).slideX(begin: 0.1);
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<LakbaiAuthProvider>(context);
     final bool isLoggedIn = authProvider.user != null;
     final size = MediaQuery.of(context).size;
 
-    final String userFirstName = isLoggedIn ? (authProvider.user!['name']?.split(' ')[0] ?? 'Explorer') : '';
-    final String userRole = isLoggedIn ? (authProvider.user!['role']?.toString().toUpperCase() ?? 'TOURIST') : '';
+    final String userFirstName = isLoggedIn ? (authProvider.user!['name']?.split(' ')[0] ?? 'Explorer') : 'Explorer';
+    final String userRole = isLoggedIn ? (authProvider.user!['role']?.toString().toUpperCase() ?? 'TOURIST') : 'TOURIST';
     final String userEmail = isLoggedIn ? (authProvider.user!['email'] ?? '') : '';
 
     return Scaffold(
@@ -71,19 +102,10 @@ class LakbaiHomeScreen extends StatelessWidget {
                   ),
                   const Spacer(),
                   const Divider(color: Colors.white24),
-                  ListTile(
-                    leading: const Icon(LucideIcons.logOut, color: Colors.redAccent),
-                    title: const Text('Sign Out', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 16)),
-                    onTap: () async {
-                      await authProvider.logout();
-                      if (context.mounted) {
-                        Navigator.pop(context); 
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (context) => const LakbaiLoginScreen()),
-                        );
-                      }
-                    },
+                  const ListTile(
+                    leading: Icon(LucideIcons.info, color: Colors.white54),
+                    title: Text('Managed by Kawman', style: TextStyle(color: Colors.white54, fontSize: 14)),
+                    subtitle: Text('To sign out, please return to the main Kawman app.', style: TextStyle(color: Colors.white38, fontSize: 12)),
                   ),
                   const SizedBox(height: 30),
                 ],
@@ -113,29 +135,14 @@ class LakbaiHomeScreen extends StatelessWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          isLoggedIn
-                              ? Builder(
-                                  builder: (ctx) => IconButton(
-                                    icon: const Icon(LucideIcons.menu, color: Colors.white, size: 32),
-                                    onPressed: () => Scaffold.of(ctx).openDrawer(),
-                                  ),
-                                )
-                              : const Text('LakbAi', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.5)),
-                          if (isLoggedIn)
-                            const Text('LakbAi', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.5)),
-                          isLoggedIn
-                              ? const SizedBox(width: 48) 
-                              : ElevatedButton.icon(
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(builder: (context) => const LakbaiLoginScreen()),
-                                    );
-                                  },
-                                  icon: const Icon(LucideIcons.user, color: Color(0xFF064E3B), size: 18),
-                                  label: const Text('Sign In', style: TextStyle(color: Color(0xFF064E3B), fontWeight: FontWeight.bold)),
-                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.white, elevation: 0),
-                                ),
+                          Builder(
+                            builder: (ctx) => IconButton(
+                              icon: const Icon(LucideIcons.menu, color: Colors.white, size: 32),
+                              onPressed: () => Scaffold.of(ctx).openDrawer(),
+                            ),
+                          ),
+                          const Text('LakbAi', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.5)),
+                          const SizedBox(width: 48), 
                         ],
                       ),
                     ),
@@ -147,7 +154,7 @@ class LakbaiHomeScreen extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            isLoggedIn ? 'Welcome back,\n$userFirstName!' : 'Explore the Beauty\nof the Philippines',
+                            'Welcome back,\n$userFirstName!',
                             textAlign: TextAlign.center,
                             style: const TextStyle(fontSize: 42, fontWeight: FontWeight.w900, color: Colors.white, height: 1.1),
                           ).animate().fadeIn(duration: 800.ms).slideY(begin: 0.2),
@@ -163,10 +170,8 @@ class LakbaiHomeScreen extends StatelessWidget {
                               Expanded(
                                 child: ElevatedButton(
                                   onPressed: () {
-                                    if (isLoggedIn && onNavigateTab != null) {
-                                      onNavigateTab!(1); // Switches tab directly to Explore
-                                    } else {
-                                      Navigator.push(context, MaterialPageRoute(builder: (context) => const LakbaiLoginScreen()));
+                                    if (onNavigateTab != null) {
+                                      onNavigateTab!(1); 
                                     }
                                   },
                                   style: ElevatedButton.styleFrom(
@@ -181,10 +186,8 @@ class LakbaiHomeScreen extends StatelessWidget {
                               Expanded(
                                 child: OutlinedButton(
                                   onPressed: () {
-                                    if (isLoggedIn && onNavigateTab != null) {
-                                      onNavigateTab!(2); // Switches tab directly to Planner
-                                    } else {
-                                      Navigator.push(context, MaterialPageRoute(builder: (context) => const LakbaiLoginScreen()));
+                                    if (onNavigateTab != null) {
+                                      onNavigateTab!(2); 
                                     }
                                   },
                                   style: OutlinedButton.styleFrom(
@@ -236,6 +239,31 @@ class LakbaiHomeScreen extends StatelessWidget {
                   _buildInfoRow(LucideIcons.sparkles, 'AI-Powered Planning', 'Generate personalized, day-by-day travel itineraries instantly using Gemini AI. It learns your preferences and builds the perfect trip.'),
                   _buildInfoRow(LucideIcons.wifiOff, 'Offline-First Capability', 'Save destinations and queue up edits even when you lose internet connection. Perfect for remote island hopping.'),
                   _buildInfoRow(LucideIcons.checkCircle, 'Verified Local Spots', 'Discover hidden gems and destinations directly submitted and verified by local Tourism Offices.'),
+                ],
+              ),
+            ),
+            // ✅ NEW: MEET THE DEVELOPERS SECTION
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.only(left: 24.0, right: 24.0, bottom: 80.0),
+              decoration: const BoxDecoration(
+                color: Color(0xFF022C22),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Divider(color: Colors.white24, thickness: 1),
+                  const SizedBox(height: 40),
+                  const Text('Meet the Developers', style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: 1.1)),
+                  const SizedBox(height: 10),
+                  const Text('The team behind the LakbAi integration.', style: TextStyle(color: Color(0xFFA7F3D0), fontSize: 18)),
+                  const SizedBox(height: 40),
+                  
+                  _buildDeveloperCard('Alnedzfar Sanaan', 'Lead Developer / UI/UX'),
+                  const SizedBox(height: 16),
+                  _buildDeveloperCard('Hazzraze Sadhan Daing', 'Full Stack Integration'),
+                  const SizedBox(height: 16),
+                  _buildDeveloperCard('Jericho Kohoyan', 'Backend Systems & Logic'),
                 ],
               ),
             ),
