@@ -31,6 +31,20 @@ class QuizProvider extends ChangeNotifier {
   bool get showResults => _showResults;
   bool get isPassed => _quizScore >= AppConfig.passingScore;
 
+  // Guard async notifyListeners() after dispose (leaving the module mid-fetch).
+  bool _disposed = false;
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
+  @override
+  void notifyListeners() {
+    if (_disposed) return;
+    super.notifyListeners();
+  }
+
   Future<void> fetchQuizzes() async {
     // Offline-first: show the local cache immediately…
     await _loadCachedQuizzes();
@@ -122,6 +136,46 @@ class QuizProvider extends ChangeNotifier {
   }
 
   Future<void> loadQuizHistory(String userId) async {
+    // Push any offline submissions to the cloud first so they show up here.
+    await syncPendingResults(userId);
+
+    // Prefer the cloud so history follows the account across devices / the
+    // embedded app; fall back to the local cache when offline (or before the
+    // quiz_attempts table SQL has been run).
+    List<Map<String, dynamic>>? cloud;
+    try {
+      final rows = await _apiService.getMyAttempts(userId);
+      cloud = rows.map((r) {
+        final m = Map<String, dynamic>.from(r);
+        m['attempted_at'] = m['submitted_at'] ?? m['attempted_at'];
+        m['is_correct'] =
+            (m['is_correct'] == true || m['is_correct'] == 1) ? 1 : 0;
+        return m;
+      }).toList();
+    } catch (_) {
+      cloud = null; // Cloud unavailable — fall through to the local cache.
+    }
+
+    if (cloud != null) {
+      // Add any attempts still waiting to upload (synced = 0) so an offline
+      // quiz appears right away; they don't duplicate cloud rows (synced = 1).
+      try {
+        final db = await _dbService.database;
+        final pending = await db.query(
+          'quiz_attempts',
+          where: 'user_id = ? AND synced = 0',
+          whereArgs: [userId],
+          orderBy: 'attempted_at DESC',
+        );
+        _quizHistory = [...pending, ...cloud];
+      } catch (_) {
+        _quizHistory = cloud;
+      }
+      notifyListeners();
+      return;
+    }
+
+    // Fully offline — show everything from the local attempts table.
     try {
       final db = await _dbService.database;
       final List<Map<String, dynamic>> result = await db.query(
@@ -131,6 +185,84 @@ class QuizProvider extends ChangeNotifier {
         orderBy: 'attempted_at DESC',
       );
       _quizHistory = result;
+      notifyListeners();
+    } catch (_) {}
+  }
+
+  // ── Cloud-synced results (for the profile, across devices) ──────────────────
+  List<Map<String, dynamic>> _cloudResults = [];
+  List<Map<String, dynamic>> get cloudResults => _cloudResults;
+
+  Future<void> loadCloudResults(String studentId) async {
+    // Upload any offline submissions first so the cloud copy is complete.
+    await syncPendingResults(studentId);
+
+    List<Map<String, dynamic>> cloud;
+    try {
+      cloud = await _apiService.getMyResults(studentId);
+    } catch (_) {
+      cloud = [];
+    }
+
+    // Add results still waiting to upload (synced = 0) so an offline quiz counts
+    // toward the profile immediately; they don't double-count cloud rows, which
+    // are synced = 1 and therefore excluded here.
+    try {
+      final db = await _dbService.database;
+      final pending = await db.query(
+        'quiz_results',
+        where: 'student_id = ? AND synced = 0',
+        whereArgs: [studentId],
+      );
+      cloud = [
+        ...cloud,
+        ...pending.map((r) => <String, dynamic>{
+              'total_questions': r['total_questions'],
+              'score': r['score'],
+              'passed': r['passed'] == 1,
+              'submitted_at': r['submitted_at'],
+            }),
+      ];
+    } catch (_) {}
+
+    _cloudResults = cloud;
+    notifyListeners();
+  }
+
+  /// Total questions answered across all submitted quizzes (cloud).
+  int get cloudTotalAnswered => _cloudResults.fold(
+      0, (s, r) => s + ((r['total_questions'] as num?)?.toInt() ?? 0));
+
+  /// Correct answers derived from each session's score % × its question count.
+  int get cloudTotalCorrect => _cloudResults.fold(0, (s, r) {
+        final tq = (r['total_questions'] as num?)?.toInt() ?? 0;
+        final score = (r['score'] as num?)?.toDouble() ?? 0;
+        return s + (score / 100 * tq).round();
+      });
+
+  double get cloudAccuracy =>
+      cloudTotalAnswered > 0 ? cloudTotalCorrect / cloudTotalAnswered * 100 : 0.0;
+
+  // ── "Already answered" tracking ─────────────────────────────────────────────
+  // A student can't retake a quiz they've already submitted. Tracked from the
+  // local quiz_attempts table (per device/account).
+  final Set<String> _answeredQuizIds = {};
+  bool isQuizAnswered(String quizId) => _answeredQuizIds.contains(quizId);
+
+  Future<void> loadAnsweredQuizzes(String userId) async {
+    try {
+      final db = await _dbService.database;
+      final rows = await db.query(
+        'quiz_attempts',
+        columns: ['quiz_id'],
+        where: 'user_id = ?',
+        whereArgs: [userId],
+      );
+      _answeredQuizIds
+        ..clear()
+        ..addAll(rows
+            .map((r) => (r['quiz_id'] ?? '').toString())
+            .where((s) => s.isNotEmpty));
       notifyListeners();
     } catch (_) {}
   }
@@ -176,6 +308,7 @@ class QuizProvider extends ChangeNotifier {
     try {
       int correctAnswers = 0;
       final db = await _dbService.database;
+      final now = DateTime.now().toIso8601String();
 
       for (var quiz in _activeQuizzes) {
         final quizId = quiz['quiz_id'] ?? quiz['id'];
@@ -190,25 +323,83 @@ class QuizProvider extends ChangeNotifier {
           'user_id': userId,
           'user_answer': userAnswer,
           'is_correct': isCorrect ? 1 : 0,
-          'attempted_at': DateTime.now().toIso8601String(),
+          'attempted_at': now,
+          'synced': 0,
         });
+        _answeredQuizIds.add(quizId.toString()); // lock from being retaken
       }
 
-      _quizScore = _activeQuizzes.isNotEmpty ? (correctAnswers / _activeQuizzes.length) * 100 : 0;
+      _quizScore = _activeQuizzes.isNotEmpty
+          ? (correctAnswers / _activeQuizzes.length) * 100
+          : 0;
       _showResults = true;
       notifyListeners();
 
-      await _apiService.submitQuizResults({
+      // Save the session result locally too, so an OFFLINE submission isn't lost.
+      await db.insert('quiz_results', {
+        'id': const Uuid().v4(),
         'student_id': userId,
         'student_name': userName,
         'score': _quizScore,
         'total_questions': _activeQuizzes.length,
-        'passed': _quizScore >= AppConfig.passingScore,
-        'submitted_at': DateTime.now().toIso8601String(),
+        'passed': _quizScore >= AppConfig.passingScore ? 1 : 0,
+        'course_id': courseId,
+        'submitted_at': now,
+        'synced': 0,
       });
+
+      // Try to push this (and any earlier offline) result to the cloud now.
+      await syncPendingResults(userId);
     } catch (e) {
       _errorMessage = 'Error submitting quiz: $e';
       notifyListeners();
+    }
+  }
+
+  /// Uploads locally-stored attempts/results that haven't reached the cloud yet
+  /// (e.g. submitted while offline). Safe to call often: on failure the records
+  /// stay pending and are retried the next time the app reaches the cloud.
+  Future<void> syncPendingResults(String userId) async {
+    if (userId.isEmpty) return;
+    try {
+      final db = await _dbService.database;
+
+      final pendingAttempts = await db.query('quiz_attempts',
+          where: 'synced = 0 AND user_id = ?', whereArgs: [userId]);
+      if (pendingAttempts.isNotEmpty) {
+        final payload = pendingAttempts
+            .map((a) => <String, dynamic>{
+                  'student_id': a['user_id'],
+                  'quiz_id': (a['quiz_id'] ?? '').toString(),
+                  'user_answer': a['user_answer'] ?? '',
+                  'is_correct': a['is_correct'] == 1,
+                  'submitted_at': a['attempted_at'],
+                })
+            .toList();
+        await _apiService.insertAttemptsOrThrow(payload); // throws if offline
+        for (final a in pendingAttempts) {
+          await db.update('quiz_attempts', {'synced': 1},
+              where: 'id = ?', whereArgs: [a['id']]);
+        }
+      }
+
+      final pendingResults = await db.query('quiz_results',
+          where: 'synced = 0 AND student_id = ?', whereArgs: [userId]);
+      for (final r in pendingResults) {
+        await _apiService.insertResultOrThrow(<String, dynamic>{
+          'student_id': r['student_id'],
+          'student_name': r['student_name'],
+          'score': r['score'],
+          'total_questions': r['total_questions'],
+          'passed': r['passed'] == 1,
+          'course_id': r['course_id'] ?? '',
+          'submitted_at': r['submitted_at'],
+        });
+        await db.update('quiz_results', {'synced': 1},
+            where: 'id = ?', whereArgs: [r['id']]);
+      }
+    } catch (_) {
+      // Offline (or cloud tables missing) — leave pending, retry next time.
     }
   }
 

@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../providers/lakbai_auth_provider.dart';
 
-// Import all screens
 import '../home/lakbai_home_screen.dart';
 import '../destinations/lakbai_explore_screen.dart';
 import '../planner/lakbai_planner_screen.dart';
@@ -28,7 +27,6 @@ class _LakbaiMainLayoutState extends State<LakbaiMainLayout> {
     _currentIndex = widget.initialIndex;
   }
 
-  // This function allows screens to change the bottom tabs dynamically
   void _switchTab(int index) {
     setState(() {
       _currentIndex = index;
@@ -40,12 +38,11 @@ class _LakbaiMainLayoutState extends State<LakbaiMainLayout> {
     final authProvider = Provider.of<LakbaiAuthProvider>(context);
     final user = authProvider.user;
     
-    // Dynamically build the tabs exactly like your React/Fullstack logic
     final List<Map<String, dynamic>> tabs = [
       {
         'name': 'Home', 
         'icon': LucideIcons.home, 
-        'screen': LakbaiHomeScreen(onNavigateTab: _switchTab) // Pass the function to Home!
+        'screen': LakbaiHomeScreen(onNavigateTab: _switchTab) 
       },
     ];
 
@@ -64,6 +61,7 @@ class _LakbaiMainLayoutState extends State<LakbaiMainLayout> {
 
     if (_currentIndex >= tabs.length) _currentIndex = 0;
 
+    // ✅ FIX: Removed PopScope. The default Scaffold automatically allows the back button to exit to Tawi-Tawi!
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: tabs[_currentIndex]['screen'], 

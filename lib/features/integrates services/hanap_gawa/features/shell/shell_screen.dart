@@ -58,7 +58,7 @@ class _ShellScreenState extends State<ShellScreen> {
   bool _bookingInitDone = false;
   bool _jobsInitDone = false;
 
-  Timer? _badgeTimer;
+  StreamSubscription<Map<String, dynamic>>? _sseSub;
 
   bool get _isAdmin => widget.api.storedUser?.role == 'admin';
 
@@ -67,9 +67,9 @@ class _ShellScreenState extends State<ShellScreen> {
     super.initState();
     if (_isAdmin) _index = 0;
     _loadBadges();
-    _badgeTimer = Timer.periodic(const Duration(seconds: 30), (_) => _loadBadges());
+    widget.api.connectSSE();
+    _sseSub = widget.api.sseEvents.listen(_onSseEvent);
     if (!widget.api.hasSeenAppTour) {
-      // Delay so the nav bar and AppBar are fully laid out before we measure keys
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Future<void>.delayed(const Duration(milliseconds: 800), _startTour);
       });
@@ -78,8 +78,23 @@ class _ShellScreenState extends State<ShellScreen> {
 
   @override
   void dispose() {
-    _badgeTimer?.cancel();
+    _sseSub?.cancel();
+    widget.api.disconnectSSE();
     super.dispose();
+  }
+
+  void _onSseEvent(Map<String, dynamic> event) {
+    if (!mounted) return;
+    final type = event['_event'] as String?;
+    if (type == 'badges') {
+      setState(() {
+        _bookingBadge = (event['bookings'] as int? ?? 0);
+        _inboxBadge = (event['messages'] as int? ?? 0);
+      });
+    } else if (type == 'notification') {
+      // A new notification arrived — refresh the unread count badge
+      _loadBadges();
+    }
   }
 
   Future<void> _loadBadges() async {

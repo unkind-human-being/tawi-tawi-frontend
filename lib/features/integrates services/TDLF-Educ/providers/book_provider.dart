@@ -38,6 +38,21 @@ class BookProvider extends ChangeNotifier {
       _downloadedBooks.any((b) => b['id'] == id);
   double? downloadProgress(String id) => _downloadProgress[id];
 
+  // Guard against async callbacks calling notifyListeners() after the provider
+  // is disposed (e.g. leaving the module while a fetch is still in flight).
+  bool _disposed = false;
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
+  @override
+  void notifyListeners() {
+    if (_disposed) return;
+    super.notifyListeners();
+  }
+
   Future<void> fetchBooks() async {
     // Offline-first: show the local cache immediately…
     await _loadCachedBooks();

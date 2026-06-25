@@ -7,47 +7,83 @@ class AuthProvider extends ChangeNotifier {
   Map<String, dynamic>? _currentUser;
   bool _isLoading = false;
   String? _errorMessage;
-  bool _isGuest = false;
+  bool _isEmbedded = false;
 
   Map<String, dynamic>? get currentUser => _currentUser;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   bool get isLoggedIn => _currentUser != null;
 
-  /// True when the module is opened embedded in a host app (e.g. Tawi-Tawi)
-  /// that already authenticated the user, so our own login is skipped and the
-  /// session is a read-only guest.
-  bool get isGuest => _isGuest;
+  /// True for the whole lifetime of an embedded launch (host super-app), so the
+  /// "return to host" controls stay available.
+  bool get isEmbedded => _isEmbedded;
 
-  /// [guest] is set by the host launcher (TdlfEducApp(guestMode: true)) so the
-  /// module opens straight into its content with no sign-in/sign-up screen.
-  AuthProvider({bool guest = false}) {
-    if (guest) {
-      _seedGuest();
-    } else {
-      _initializeUser();
-    }
+  /// [embedded] is set by the host launcher (TdlfEducApp(embedded: true)).
+  /// In that mode the module stays signed-out until the welcome screen signs
+  /// the user in — automatically from their host (Tawi-Tawi) account, or
+  /// manually with their own TDLF-Educ account.
+  AuthProvider({bool embedded = false}) {
+    _isEmbedded = embedded;
+    // Load any persisted session on both standalone and embedded, so exiting
+    // and re-opening the module doesn't force a re-sign-in (the welcome only
+    // shows when there's no signed-in user).
+    _initializeUser();
+  }
+
+  // Guard async notifyListeners() after dispose (leaving the module mid-call).
+  bool _disposed = false;
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
+  @override
+  void notifyListeners() {
+    if (_disposed) return;
+    super.notifyListeners();
   }
 
   Future<void> _initializeUser() async {
+    // Adopt an existing session synchronously (runs during construction, before
+    // the first await) so `isLoggedIn` is already true on the first frame — this
+    // is what stops the welcome/login screen flashing on embedded re-entry.
+    final cached = _authService.sessionUserSync();
+    if (cached != null) {
+      _currentUser = cached;
+      notifyListeners();
+    }
+    // Then refresh the full profile (course, student_id, etc.) from cloud/cache.
+    final full = await _authService.getCurrentUser();
+    if (full != null) _currentUser = full;
+    notifyListeners();
+  }
+
+  /// Re-fetches the current session's profile from the cloud (or cache).
+  /// Used by the Profile screen's pull-to-refresh / reload so a stalled or
+  /// not-yet-loaded session can be recovered without restarting the app.
+  Future<void> refreshUser() async {
     _currentUser = await _authService.getCurrentUser();
     notifyListeners();
   }
 
-  /// Synthetic, read-only identity used when embedded in a host super-app.
-  void _seedGuest() {
-    _isGuest = true;
-    _currentUser = {
-      'id': 'guest',
-      'username': 'Guest',
-      'full_name': 'Guest',
-      'email': '',
-      'role': 'Student',
-      'course': '',
-      'student_id': '',
-      'grade_level': '',
-    };
+  /// Signs in using the host (Tawi-Tawi) account — a Supabase account derived
+  /// from their email, so it "flows in" with no extra sign-up. Returns `null`
+  /// on success, otherwise a message (e.g. the email already has its own
+  /// TDLF-Educ account → the caller routes to a normal password sign-in).
+  Future<String?> signInAsHostUser(String email, String fullName) async {
+    _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
+    final error =
+        await _authService.signInAsHostUser(email: email, fullName: fullName);
+    if (error == null) {
+      _currentUser = await _authService.getCurrentUser();
+    }
+    _isLoading = false;
+    _errorMessage = error;
+    notifyListeners();
+    return error;
   }
 
   Future<bool> signUp({

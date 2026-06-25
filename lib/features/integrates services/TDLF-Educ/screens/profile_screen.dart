@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/quiz_provider.dart';
 import '../providers/book_provider.dart';
+import '../providers/course_provider.dart';
 import '../config/app_config.dart';
 import '../theme/app_theme.dart';
 
@@ -15,17 +16,25 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   List<Map<String, dynamic>> _allTeachers = [];
+  String? _loadedForUserId;
 
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final auth = context.read<AuthProvider>();
-      if (auth.currentUser != null) {
-        context.read<QuizProvider>().loadQuizHistory(auth.currentUser!['id'] as String);
-      }
-      _loadTeachers();
-    });
+  /// Reloads the session/profile, cloud-synced quiz stats and faculty list.
+  /// Used on open, on pull-to-refresh / Reload, and automatically when the
+  /// signed-in user changes so a stalled or not-yet-loaded profile recovers
+  /// without restarting the app.
+  Future<void> _refresh() async {
+    final auth = context.read<AuthProvider>();
+    final quiz = context.read<QuizProvider>();
+    await auth.refreshUser();
+    if (!mounted) return;
+    final user = auth.currentUser;
+    if (user != null) {
+      final id = user['id'].toString();
+      await quiz.loadCloudResults(id);
+      await quiz.loadQuizHistory(id);
+    }
+    final teachers = await auth.getAllTeachers();
+    if (mounted) setState(() => _allTeachers = teachers);
   }
 
   Future<void> _loadTeachers() async {
@@ -41,7 +50,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final isTeacher = user['role'] == 'Teacher';
     final isStudent = user['role'] == 'Student';
     final rawCourse = user['course'] as String? ?? '';
-    String selectedCourse = AppConfig.courses.contains(rawCourse) ? rawCourse : AppConfig.courses[0];
+    // Live courses (synced with Books); keep the teacher's current course
+    // selectable even if it's no longer in the list.
+    final courseOptions = <String>[
+      ...context
+          .read<CourseProvider>()
+          .courses
+          .map((c) => (c['title'] ?? '').toString())
+          .where((t) => t.isNotEmpty),
+    ];
+    if (rawCourse.isNotEmpty && !courseOptions.contains(rawCourse)) {
+      courseOptions.insert(0, rawCourse);
+    }
+    String selectedCourse = (rawCourse.isNotEmpty && courseOptions.contains(rawCourse))
+        ? rawCourse
+        : (courseOptions.isNotEmpty ? courseOptions.first : '');
     final rawGrade = user['grade_level'] as String? ?? '';
     String selectedGrade =
         AppConfig.gradeLevels.contains(rawGrade) ? rawGrade : AppConfig.gradeLevels[0];
@@ -123,9 +146,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
-                        value: selectedCourse,
+                        value: selectedCourse.isEmpty ? null : selectedCourse,
                         isDense: true,
-                        items: AppConfig.courses
+                        isExpanded: true,
+                        hint: const Text('Select a course'),
+                        items: courseOptions
                             .map((c) => DropdownMenuItem(
                                   value: c,
                                   child: Text(c, overflow: TextOverflow.ellipsis),
@@ -183,26 +208,67 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Consumer<AuthProvider>(
       builder: (context, auth, _) {
         final user = auth.currentUser;
-        if (user == null) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        final isTeacher = user?['role'] == 'Teacher';
+        // Load (or reload) this user's synced stats the first time we see them
+        // and again whenever the signed-in user changes.
+        final uid = user?['id']?.toString();
+        if (uid != null && uid != _loadedForUserId) {
+          _loadedForUserId = uid;
+          WidgetsBinding.instance.addPostFrameCallback((_) => _refresh());
         }
-        final isTeacher = user['role'] == 'Teacher';
         return Scaffold(
           appBar: AppBar(
             title: const Text('Profile'),
             actions: [
               IconButton(
-                icon: const Icon(Icons.edit_rounded),
-                tooltip: 'Edit Profile',
-                onPressed: () => _showEditDialog(context, user),
+                icon: const Icon(Icons.refresh_rounded),
+                tooltip: 'Reload',
+                onPressed: _refresh,
               ),
+              if (user != null)
+                IconButton(
+                  icon: const Icon(Icons.edit_rounded),
+                  tooltip: 'Edit Profile',
+                  onPressed: () => _showEditDialog(context, user),
+                ),
             ],
           ),
-          body: isTeacher
-              ? _buildTeacherProfile(context, user)
-              : _buildStudentProfile(context, user),
+          body: user == null
+              ? _buildLoading(context)
+              : (isTeacher
+                  ? _buildTeacherProfile(context, user)
+                  : _buildStudentProfile(context, user)),
         );
       },
+    );
+  }
+
+  /// Shown while the session/profile is still loading (or failed to load).
+  /// Pull down or tap Reload to retry without restarting the app.
+  Widget _buildLoading(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return RefreshIndicator(
+      onRefresh: _refresh,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          const SizedBox(height: 180),
+          const Center(child: CircularProgressIndicator()),
+          const SizedBox(height: 16),
+          Center(
+            child: Text('Loading your profile…',
+                style: TextStyle(color: cs.onSurfaceVariant)),
+          ),
+          const SizedBox(height: 8),
+          Center(
+            child: TextButton.icon(
+              onPressed: _refresh,
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: const Text('Reload'),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -213,7 +279,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final currentUserId = user['id'] as String;
 
     return RefreshIndicator(
-      onRefresh: _loadTeachers,
+      onRefresh: _refresh,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16),
@@ -266,15 +332,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final cs = Theme.of(context).colorScheme;
     return Consumer2<QuizProvider, BookProvider>(
       builder: (context, quiz, books, _) {
-        final history = quiz.quizHistory;
-        final total = history.length;
-        final correct = history.where((a) => a['is_correct'] == 1).length;
-        final accuracy = total > 0 ? (correct / total) * 100 : 0.0;
+        // Stats come from the cloud so they follow the account across devices.
+        final results = quiz.cloudResults;
+        final total = quiz.cloudTotalAnswered;
+        final correct = quiz.cloudTotalCorrect;
+        final accuracy = quiz.cloudAccuracy;
         final downloadedCount = books.downloadedBooks.length;
         final rawDate = (user['created_at'] as String? ?? '').split('T')[0];
         final joinDate = rawDate.isNotEmpty ? rawDate : 'Unknown';
 
-        return SingleChildScrollView(
+        return RefreshIndicator(
+          onRefresh: _refresh,
+          child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -302,21 +372,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ]),
               const SizedBox(height: 12),
               _AchievementsGrid(total: total, accuracy: accuracy, downloads: downloadedCount, cs: cs),
-              if (history.isNotEmpty) ...[
+              if (results.isNotEmpty) ...[
                 const SizedBox(height: 24),
                 Row(children: [
                   Icon(Icons.history_rounded, size: 20, color: cs.primary),
                   const SizedBox(width: 8),
                   Text(
-                    'Recent Activity',
+                    'Recent Quizzes',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: cs.onSurface),
                   ),
                 ]),
                 const SizedBox(height: 12),
-                _RecentHistory(history: history.reversed.take(8).toList(), cs: cs),
+                _RecentResults(results: results.take(8).toList(), cs: cs),
               ],
               const SizedBox(height: 16),
             ],
+          ),
           ),
         );
       },
@@ -1003,22 +1074,22 @@ class _AchievementCard extends StatelessWidget {
   }
 }
 
-// ─── Recent History ───────────────────────────────────────────────────────────
+// ─── Recent Quizzes (cloud-synced sessions) ──────────────────────────────────
 
-class _RecentHistory extends StatelessWidget {
-  final List<Map<String, dynamic>> history;
+class _RecentResults extends StatelessWidget {
+  final List<Map<String, dynamic>> results;
   final ColorScheme cs;
 
-  const _RecentHistory({required this.history, required this.cs});
+  const _RecentResults({required this.results, required this.cs});
 
   @override
   Widget build(BuildContext context) {
     return Column(
-      children: history.map((attempt) {
-        final isCorrect = attempt['is_correct'] == 1;
-        final question = attempt['question'] as String? ?? 'Question';
-        final answer = attempt['user_answer'] as String? ?? '—';
-        final date = (attempt['attempted_at'] as String? ?? '').split('T')[0];
+      children: results.map((r) {
+        final passed = r['passed'] == true;
+        final score = (r['score'] as num?)?.toDouble() ?? 0;
+        final totalQ = (r['total_questions'] as num?)?.toInt() ?? 0;
+        final date = (r['submitted_at'] as String? ?? '').split('T')[0];
 
         return Container(
           margin: const EdgeInsets.only(bottom: 8),
@@ -1033,13 +1104,13 @@ class _RecentHistory extends StatelessWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: isCorrect ? cs.primaryContainer : cs.errorContainer,
+                  color: passed ? cs.primaryContainer : cs.errorContainer,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  isCorrect ? Icons.check_rounded : Icons.close_rounded,
+                  passed ? Icons.check_rounded : Icons.close_rounded,
                   size: 16,
-                  color: isCorrect ? cs.primary : cs.error,
+                  color: passed ? cs.primary : cs.error,
                 ),
               ),
               const SizedBox(width: 10),
@@ -1048,19 +1119,24 @@ class _RecentHistory extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      question,
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: cs.onSurface),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      passed ? 'Passed' : 'Failed',
+                      style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: passed ? cs.primary : cs.error),
                     ),
                     Text(
-                      'Your answer: $answer',
+                      '$totalQ question${totalQ == 1 ? '' : 's'} · $date',
                       style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
                     ),
                   ],
                 ),
               ),
-              Text(date, style: TextStyle(fontSize: 10, color: cs.onSurfaceVariant)),
+              Text('${score.toStringAsFixed(0)}%',
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: passed ? cs.primary : cs.error)),
             ],
           ),
         );

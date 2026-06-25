@@ -88,7 +88,7 @@ class DatabaseService {
       )
     ''');
 
-    // Quiz Attempts Table
+    // Quiz Attempts Table (synced = 0 until uploaded to the cloud)
     await db.execute('''
       CREATE TABLE quiz_attempts (
         id TEXT PRIMARY KEY,
@@ -97,8 +97,25 @@ class DatabaseService {
         user_answer TEXT,
         is_correct BOOLEAN,
         attempted_at TEXT NOT NULL,
+        synced INTEGER DEFAULT 0,
         FOREIGN KEY (quiz_id) REFERENCES quizzes(id),
         FOREIGN KEY (user_id) REFERENCES users(id)
+      )
+    ''');
+
+    // Quiz Results — local copy of each submission so offline results aren't
+    // lost; uploaded to the cloud when a connection is available (synced = 1).
+    await db.execute('''
+      CREATE TABLE quiz_results (
+        id TEXT PRIMARY KEY,
+        student_id TEXT,
+        student_name TEXT,
+        score REAL,
+        total_questions INTEGER,
+        passed INTEGER,
+        course_id TEXT,
+        submitted_at TEXT,
+        synced INTEGER DEFAULT 0
       )
     ''');
   }
@@ -127,6 +144,31 @@ class DatabaseService {
       } catch (_) {
         // Column already present — nothing to do.
       }
+    }
+    if (oldVersion < 7) {
+      // Offline outbox: track which attempts/results still need uploading.
+      try {
+        await db.execute(
+            "ALTER TABLE quiz_attempts ADD COLUMN synced INTEGER DEFAULT 0");
+        // Existing attempts were already pushed when taken online; mark them
+        // synced so the outbox flush doesn't re-upload them as duplicates.
+        await db.execute("UPDATE quiz_attempts SET synced = 1");
+      } catch (_) {}
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS quiz_results (
+            id TEXT PRIMARY KEY,
+            student_id TEXT,
+            student_name TEXT,
+            score REAL,
+            total_questions INTEGER,
+            passed INTEGER,
+            course_id TEXT,
+            submitted_at TEXT,
+            synced INTEGER DEFAULT 0
+          )
+        ''');
+      } catch (_) {}
     }
   }
 

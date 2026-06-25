@@ -4,6 +4,7 @@ import 'dart:async';
 import 'nearby_screen.dart';
 import 'chat_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../core/channels/app_channels.dart';
 
 class InboxScreen extends StatefulWidget {
   const InboxScreen({super.key});
@@ -13,8 +14,6 @@ class InboxScreen extends StatefulWidget {
 }
 
 class _InboxScreenState extends State<InboxScreen> {
-  static const platform = MethodChannel('com.rhyn.reach/messaging');
-  static const inboxEvents = EventChannel('com.rhyn.reach/inbox_events');
   List<String> _messages = [];
   bool _isLoading = true;
   bool _showIntroBanner = false;
@@ -24,7 +23,7 @@ class _InboxScreenState extends State<InboxScreen> {
   void initState() {
     super.initState();
     _checkFirstTime();
-    _inboxSubscription = inboxEvents.receiveBroadcastStream().listen((dynamic event) {
+    _inboxSubscription = AppChannels.inboxEvents.receiveBroadcastStream().listen((dynamic event) {
       if (mounted) {
         setState(() {
           _messages = List<String>.from(event);

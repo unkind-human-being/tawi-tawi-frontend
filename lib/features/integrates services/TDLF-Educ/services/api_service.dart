@@ -54,6 +54,16 @@ class ApiService {
     }
   }
 
+  /// Renames/edits a course (teachers only — enforced by Supabase RLS).
+  Future<bool> updateCourse(String courseId, Map<String, dynamic> data) async {
+    try {
+      await _sb.from('courses').update(data).eq('id', courseId);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Downloads a book PDF and returns the local file path, or null on failure.
   ///
   /// [onProgress] reports (received, total) bytes. When [validatePdf] is true the
@@ -176,15 +186,6 @@ class ApiService {
     }
   }
 
-  Future<bool> submitQuizResults(Map<String, dynamic> data) async {
-    try {
-      await _sb.from('quiz_results').insert(data);
-      return true;
-    } catch (_) {
-      return false;
-    }
-  }
-
   /// All submitted quiz results (teacher "monitor students" view).
   Future<List<Map<String, dynamic>>> getStudents() async {
     try {
@@ -193,5 +194,53 @@ class ApiService {
     } catch (_) {
       return [];
     }
+  }
+
+  /// One student's own quiz results from the cloud — lets the profile's stats
+  /// (accuracy, answers) sync across devices instead of starting from zero.
+  Future<List<Map<String, dynamic>>> getMyResults(String studentId) async {
+    try {
+      final data = await _sb
+          .from('quiz_results')
+          .select()
+          .eq('student_id', studentId)
+          .order('submitted_at', ascending: false);
+      return List<Map<String, dynamic>>.from(data);
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Strict variants used by the offline outbox: they THROW when the upload
+  /// fails (offline), so the caller can keep the record pending and retry later.
+  Future<void> insertAttemptsOrThrow(List<Map<String, dynamic>> attempts) async {
+    if (attempts.isEmpty) return;
+    await _sb.from('quiz_attempts').insert(attempts);
+  }
+
+  Future<void> insertResultOrThrow(Map<String, dynamic> data) async {
+    try {
+      await _sb.from('quiz_results').insert(data);
+    } catch (e) {
+      // Retry without course_id for projects that don't have that column yet.
+      if (data.containsKey('course_id')) {
+        final copy = Map<String, dynamic>.from(data)..remove('course_id');
+        await _sb.from('quiz_results').insert(copy);
+        return;
+      }
+      rethrow;
+    }
+  }
+
+  /// One student's own per-question attempts (the History tab). Throws if the
+  /// cloud is unreachable / the table is missing, so callers can fall back to
+  /// the local cache.
+  Future<List<Map<String, dynamic>>> getMyAttempts(String studentId) async {
+    final data = await _sb
+        .from('quiz_attempts')
+        .select()
+        .eq('student_id', studentId)
+        .order('submitted_at', ascending: false);
+    return List<Map<String, dynamic>>.from(data);
   }
 }

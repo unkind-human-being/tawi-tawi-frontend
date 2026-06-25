@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import '../lakbai_config.dart'; // <-- Import centralized config
+import '../lakbai_config.dart';
 
 class LakbaiAuthProvider extends ChangeNotifier {
   Map<String, dynamic>? _user;
@@ -16,71 +16,85 @@ class LakbaiAuthProvider extends ChangeNotifier {
 
   final _storage = const FlutterSecureStorage();
 
+  LakbaiAuthProvider() { initAuth(); }
+
   Future<void> initAuth() async {
     try {
-      final token = await _storage.read(key: 'jwt_token');
-      final savedUser = await _storage.read(key: 'user_data');
-      
-      if (token != null && savedUser != null) {
-        _user = jsonDecode(savedUser);
-      }
-    } catch (e) {
-      debugPrint('Secure storage initialization error: $e');
+      final token = await _storage.read(key: 'lakbai_jwt_token');
+      final savedUser = await _storage.read(key: 'lakbai_user_data');
+      if (token != null && savedUser != null) _user = jsonDecode(savedUser);
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  Future<void> login(String email, String password) async {
-    final response = await http.post(
-      Uri.parse('${LakbaiAppConfig.baseUrl}/auth/login'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': email, 'password': password}),
-    );
+  // ✅ HANDSHAKE: Checks the internal route and forces Auto-Login if successful
+  Future<String> verifyHandshake(String tawiId, String email) async {
+    final safeEmail = email.trim().toLowerCase();
+    try {
+      final url = '${LakbaiAppConfig.baseUrl}/internal/verify-user';
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-internal-gateway-secret': LakbaiAppConfig.gatewaySecret
+        },
+        body: jsonEncode({'tawiTawiUserId': tawiId, 'email': safeEmail}),
+      );
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      _user = data['user'];
-      
-      await _storage.write(key: 'jwt_token', value: data['token']);
-      await _storage.write(key: 'user_data', value: jsonEncode(data['user']));
-      
-      notifyListeners();
-    } else {
-      final errorData = jsonDecode(response.body);
-      throw Exception(errorData['message'] ?? 'Invalid credentials'); 
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['requiresRegistration'] == true) {
+          return "SIGNUP"; // User does not exist, send to Signup
+        } else if (data['isLinked'] == true && data['token'] != null) {
+          _user = data['user'];
+          await _storage.write(key: 'lakbai_jwt_token', value: data['token']);
+          await _storage.write(key: 'lakbai_user_data', value: jsonEncode(data['user']));
+          notifyListeners();
+          return "SUCCESS"; // User exists! Token saved. Bypass signup.
+        }
+      }
+    } catch (e) {
+      debugPrint('Handshake Error: $e');
     }
+    return "ERROR";
   }
 
-  Future<void> register(String name, String email, String password, String role, String region, String contactNumber) async {
+  // ✅ INTERNAL REGISTER: Registers cleanly using the Gateway
+  Future<void> registerHandshake(String tawiId, String name, String email, String role, String region, String contactNumber) async {
+    final url = '${LakbaiAppConfig.baseUrl}/internal/register-user';
     final response = await http.post(
-      Uri.parse('${LakbaiAppConfig.baseUrl}/auth/signup'),
-      headers: {'Content-Type': 'application/json'},
+      Uri.parse(url),
+      headers: {
+        'Content-Type': 'application/json',
+        'x-internal-gateway-secret': LakbaiAppConfig.gatewaySecret
+      },
       body: jsonEncode({
-        'name': name,
-        'email': email,
-        'password': password,
+        'tawiTawiUserId': tawiId,
+        'fullName': name,
+        'email': email.trim().toLowerCase(),
         'role': role,
         'region': region,
-        'contactNumber': contactNumber,
+        'contactNumber': contactNumber
       }),
     );
 
-    if (response.statusCode == 201) {
-      // FIX: Removed the token saving and user assignment here.
-      // We just notify listeners that loading is done, keeping the user logged out.
+    if (response.statusCode == 201 || response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      _user = data['user'];
+      await _storage.write(key: 'lakbai_jwt_token', value: data['token']);
+      await _storage.write(key: 'lakbai_user_data', value: jsonEncode(data['user']));
       notifyListeners();
     } else {
-      final errorData = jsonDecode(response.body);
-      throw Exception(errorData['message'] ?? 'Registration failed');
+      throw Exception(jsonDecode(response.body)['message'] ?? 'Registration failed');
     }
   }
 
   Future<void> logout() async {
     _user = null;
-    await _storage.delete(key: 'jwt_token');
-    await _storage.delete(key: 'user_data');
+    await _storage.delete(key: 'lakbai_jwt_token');
+    await _storage.delete(key: 'lakbai_user_data');
     notifyListeners();
   }
 }

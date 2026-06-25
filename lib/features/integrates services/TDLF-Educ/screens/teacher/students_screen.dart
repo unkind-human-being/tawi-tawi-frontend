@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../services/api_service.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/course_provider.dart';
 import 'directory_screen.dart';
 
 class StudentsScreen extends StatefulWidget {
@@ -13,27 +16,53 @@ class _StudentsScreenState extends State<StudentsScreen> {
   final ApiService _api = ApiService();
   Map<String, List<Map<String, dynamic>>> _grouped = {};
   bool _isLoading = true;
+  String _teacherCourse = '';
 
   @override
   void initState() {
     super.initState();
-    _loadStudents();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadStudents());
   }
 
   Future<void> _loadStudents() async {
-    setState(() => _isLoading = true);
+    if (mounted) setState(() => _isLoading = true);
+    final auth = context.read<AuthProvider>();
+    final courseProv = context.read<CourseProvider>();
+    // Make sure the live course list is loaded so we can map the teacher's
+    // course title to its id(s).
+    await courseProv.fetchCourses();
     final data = await _api.getStudents();
-    if (mounted) {
-      final grouped = <String, List<Map<String, dynamic>>>{};
-      for (final r in data) {
-        final id = r['student_id']?.toString() ?? 'unknown';
-        grouped.putIfAbsent(id, () => []).add(r);
-      }
-      setState(() {
-        _grouped = grouped;
-        _isLoading = false;
-      });
+    if (!mounted) return;
+
+    // Scope results to the teacher's own course. A teacher who teaches History
+    // only sees attempts on History quizzes. (No course set = see everything.)
+    final teacherCourse =
+        (auth.currentUser?['course'] ?? '').toString().trim();
+    final myCourseIds = courseProv.courses
+        .where((c) => (c['title'] ?? '').toString() == teacherCourse)
+        .map((c) => c['id'].toString())
+        .toSet();
+    final scoped = (teacherCourse.isEmpty || myCourseIds.isEmpty)
+        ? data
+        : data.where((r) {
+            final cid = (r['course_id'] ?? '').toString();
+            // Untagged results (legacy / before the course_id column) stay
+            // visible; tagged results show only for the matching course.
+            return cid.isEmpty || myCourseIds.contains(cid);
+          }).toList();
+
+    final grouped = <String, List<Map<String, dynamic>>>{};
+    for (final r in scoped) {
+      final id = r['student_id']?.toString() ?? 'unknown';
+      grouped.putIfAbsent(id, () => []).add(r);
     }
+    setState(() {
+      _teacherCourse = (teacherCourse.isEmpty || myCourseIds.isEmpty)
+          ? ''
+          : teacherCourse;
+      _grouped = grouped;
+      _isLoading = false;
+    });
   }
 
   @override
@@ -42,7 +71,9 @@ class _StudentsScreenState extends State<StudentsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Student Progress'),
+        title: Text(_teacherCourse.isEmpty
+            ? 'Student Progress'
+            : 'Student Progress · $_teacherCourse'),
         actions: [
           IconButton(
             icon: const Icon(Icons.contacts_rounded),

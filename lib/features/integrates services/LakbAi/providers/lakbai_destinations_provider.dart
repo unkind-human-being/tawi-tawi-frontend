@@ -27,7 +27,7 @@ class LakbaiDestinationsProvider extends ChangeNotifier {
   }
 
   Future<String?> _getToken() async {
-    return await _secureStorage.read(key: 'jwt_token'); 
+    return await _secureStorage.read(key: 'lakbai_jwt_token'); 
   }
 
   Future<void> fetchDestinations() async {

@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/course_provider.dart';
 import '../../config/app_config.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/aurora_background.dart';
 import '../../widgets/glass.dart';
+import '../../widgets/app_logo.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  /// Pre-fills the sign-in email (e.g. when a host user is sent here to sign in
+  /// with their existing TDLF-Educ account).
+  final String? prefillEmail;
+  const LoginScreen({super.key, this.prefillEmail});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -31,14 +36,27 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    _emailCtrl = TextEditingController();
+    _emailCtrl = TextEditingController(text: widget.prefillEmail ?? '');
     _passwordCtrl = TextEditingController();
     _usernameCtrl = TextEditingController();
     _signupEmailCtrl = TextEditingController();
     _signupPasswordCtrl = TextEditingController();
     _fullNameCtrl = TextEditingController();
     _studentIdCtrl = TextEditingController();
+    // Load the live course list (anon-readable) so the teacher "Course You
+    // Teach" picker stays in sync with the courses managed in Books.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<CourseProvider>().fetchCourses();
+    });
   }
+
+  /// Live course titles (falls back to the built-in defaults until loaded).
+  List<String> _courseTitles(BuildContext context) => context
+      .watch<CourseProvider>()
+      .courses
+      .map((c) => (c['title'] ?? '').toString())
+      .where((t) => t.isNotEmpty)
+      .toList();
 
   @override
   void dispose() {
@@ -59,19 +77,37 @@ class _LoginScreenState extends State<LoginScreen> {
       password: _passwordCtrl.text,
     );
     if (success && mounted) {
-      Navigator.of(context).pushReplacementNamed('/home');
+      // If this screen was pushed on top of another route, pop so the app
+      // underneath rebuilds as the now-signed-in user; otherwise go to home.
+      final nav = Navigator.of(context);
+      if (nav.canPop()) {
+        nav.pop();
+      } else {
+        nav.pushReplacementNamed('/home');
+      }
     }
   }
 
   Future<void> _handleSignUp() async {
     final auth = context.read<AuthProvider>();
     final isStudent = _selectedRole == 'Student';
+    // Resolve to a course that actually exists in the live list, so what gets
+    // saved matches what's shown (and what Books/Quizzes use).
+    final titles = context
+        .read<CourseProvider>()
+        .courses
+        .map((c) => (c['title'] ?? '').toString())
+        .where((t) => t.isNotEmpty)
+        .toList();
+    final teacherCourse = titles.contains(_selectedCourse)
+        ? _selectedCourse
+        : (titles.isNotEmpty ? titles.first : '');
     final success = await auth.signUp(
       username: _usernameCtrl.text.trim(),
       email: _signupEmailCtrl.text.trim(),
       password: _signupPasswordCtrl.text,
       role: _selectedRole,
-      course: _selectedRole == 'Teacher' ? _selectedCourse : '',
+      course: _selectedRole == 'Teacher' ? teacherCourse : '',
       fullName: _fullNameCtrl.text.trim(),
       studentId: isStudent ? _studentIdCtrl.text.trim() : '',
       gradeLevel: isStudent ? _selectedGrade : '',
@@ -122,12 +158,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final decor = AppDecoration.of(context);
     return Column(
       children: [
-        const GradientIconBadge(
-          icon: Icons.school_rounded,
-          size: 84,
-          iconSize: 46,
-          radius: 26,
-        ),
+        const AppLogo(size: 84),
         const SizedBox(height: 20),
         ShaderMask(
           shaderCallback: (rect) => decor.brand.createShader(rect),
@@ -319,52 +350,66 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 14),
-        InputDecorator(
-          decoration: const InputDecoration(
-            labelText: 'Role',
-            prefixIcon: Icon(Icons.verified_user_outlined),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: _selectedRole,
-              isDense: true,
-              isExpanded: true,
-              borderRadius: BorderRadius.circular(16),
-              items: AppConfig.userRoles
-                  .map((r) => DropdownMenuItem(value: r, child: Text(r)))
-                  .toList(),
-              onChanged: (v) {
-                if (v != null) setState(() => _selectedRole = v);
-              },
-            ),
-          ),
-        ),
-        if (_selectedRole == 'Teacher') ...[
+        // In the embedded host app only Students can sign up (teachers create
+        // their account in the main app, then sign in here). So hide the role
+        // picker and keep the role as Student.
+        if (!auth.isEmbedded) ...[
           const SizedBox(height: 14),
           InputDecorator(
             decoration: const InputDecoration(
-              labelText: 'Course You Teach',
-              prefixIcon: Icon(Icons.class_outlined),
+              labelText: 'Role',
+              prefixIcon: Icon(Icons.verified_user_outlined),
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
-                value: _selectedCourse,
+                value: _selectedRole,
                 isDense: true,
                 isExpanded: true,
                 borderRadius: BorderRadius.circular(16),
-                items: AppConfig.courses
-                    .map((c) => DropdownMenuItem(
-                          value: c,
-                          child: Text(c, overflow: TextOverflow.ellipsis),
-                        ))
+                items: AppConfig.userRoles
+                    .map((r) => DropdownMenuItem(value: r, child: Text(r)))
                     .toList(),
                 onChanged: (v) {
-                  if (v != null) setState(() => _selectedCourse = v);
+                  if (v != null) setState(() => _selectedRole = v);
                 },
               ),
             ),
           ),
+        ],
+        if (_selectedRole == 'Teacher') ...[
+          const SizedBox(height: 14),
+          Builder(builder: (context) {
+            final titles = _courseTitles(context);
+            // Always keep the dropdown's value among its items to avoid the
+            // "value not in items" assertion that would break the form.
+            final value = titles.contains(_selectedCourse)
+                ? _selectedCourse
+                : (titles.isNotEmpty ? titles.first : null);
+            return InputDecorator(
+              decoration: const InputDecoration(
+                labelText: 'Course You Teach',
+                prefixIcon: Icon(Icons.class_outlined),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: value,
+                  isDense: true,
+                  isExpanded: true,
+                  borderRadius: BorderRadius.circular(16),
+                  hint: const Text('Select a course'),
+                  items: titles
+                      .map((c) => DropdownMenuItem(
+                            value: c,
+                            child: Text(c, overflow: TextOverflow.ellipsis),
+                          ))
+                      .toList(),
+                  onChanged: (v) {
+                    if (v != null) setState(() => _selectedCourse = v);
+                  },
+                ),
+              ),
+            );
+          }),
         ],
         if (_selectedRole == 'Student') ...[
           const SizedBox(height: 14),

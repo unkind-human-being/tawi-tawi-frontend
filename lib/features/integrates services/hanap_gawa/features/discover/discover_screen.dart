@@ -23,6 +23,7 @@ import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/skeleton.dart';
 import '../notifications/notification_screen.dart';
 import '../saved/saved_screen.dart';
+import '../settings/about_screen.dart';
 import '../settings/help_screen.dart';
 import '../settings/rate_feedback_sheet.dart';
 import 'feed_card.dart';
@@ -87,15 +88,12 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     WidgetsBinding.instance.addObserver(this);
     unawaited(_loadCachedFeedThenRefresh());
     _loadStories();
-    _feedTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+    _feedTimer = Timer.periodic(const Duration(minutes: 3), (_) {
       _loadFeed(showSpinner: false);
       _loadStories();
     });
-    if (widget.api.token.isNotEmpty) {
-      _loadUnreadCount();
-      _notifTimer = Timer.periodic(
-          const Duration(seconds: 30), (_) => _loadUnreadCount());
-    }
+    // Notification count is now pushed via SSE from shell_screen — no polling needed
+    if (widget.api.token.isNotEmpty) _loadUnreadCount();
     _connectivitySub = SyncService.instance.onlineStream.listen((_) {
       if (SyncService.instance.isOnline) _loadFeed(showSpinner: false);
     });
@@ -554,6 +552,18 @@ class _DiscoverScreenState extends State<DiscoverScreen>
                 Navigator.push(
                   context,
                   MaterialPageRoute<void>(builder: (_) => const HelpScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.info_outline, color: appPrimary),
+              title: const Text('About HanapGawa'),
+              subtitle: const Text('App info & developers'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute<void>(builder: (_) => const AboutScreen()),
                 );
               },
             ),

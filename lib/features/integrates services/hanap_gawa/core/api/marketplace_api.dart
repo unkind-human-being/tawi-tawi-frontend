@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -18,12 +19,65 @@ class MarketplaceApi {
 
   MarketplaceApi({String? baseUrlOverride}) : _baseUrlOverride = baseUrlOverride;
 
+  // SSE — streams badge/notification events pushed by the server
+  final _sseController = StreamController<Map<String, dynamic>>.broadcast();
+  Stream<Map<String, dynamic>> get sseEvents => _sseController.stream;
+  http.Client? _sseClient;
+  bool _sseActive = false;
+
+  /// Connects to the SSE endpoint and auto-reconnects on disconnect.
+  void connectSSE() {
+    if (_sseActive) return;
+    _sseActive = true;
+    _sseLoop();
+  }
+
+  void disconnectSSE() {
+    _sseActive = false;
+    _sseClient?.close();
+    _sseClient = null;
+  }
+
+  Future<void> _sseLoop() async {
+    while (_sseActive) {
+      try {
+        _sseClient = http.Client();
+        final request = http.Request('GET', Uri.parse('$_baseUrl/events'));
+        request.headers.addAll(_headers(true));
+        final response = await _sseClient!.send(request);
+
+        String buffer = '';
+        await response.stream.transform(utf8.decoder).forEach((chunk) {
+          buffer += chunk;
+          final lines = buffer.split('\n');
+          buffer = lines.removeLast(); // keep incomplete line in buffer
+          String? event;
+          for (final line in lines) {
+            if (line.startsWith('event:')) {
+              event = line.substring(6).trim();
+            } else if (line.startsWith('data:') && event != null) {
+              try {
+                final data = jsonDecode(line.substring(5).trim()) as Map<String, dynamic>;
+                data['_event'] = event;
+                if (!_sseController.isClosed) _sseController.add(data);
+              } catch (_) {}
+              event = null;
+            }
+          }
+        });
+      } catch (_) {
+        // connection dropped
+      }
+      if (_sseActive) await Future.delayed(const Duration(seconds: 5));
+    }
+  }
+
   late final SharedPreferences _prefs;
   SessionUser? storedUser;
 
   String get baseUrl {
     if (_baseUrlOverride != null && _baseUrlOverride!.isNotEmpty) return _baseUrlOverride!;
-    const configured = String.fromEnvironment('API_BASE_URL');
+    const configured = String.fromEnvironment('HANAPGAWA_API_URL');
     if (configured.isNotEmpty) return configured;
     return 'https://hanapgawa.onrender.com/api/v1';
   }
@@ -57,14 +111,15 @@ class MarketplaceApi {
   Future<void> initWithToken(String token, {SessionUser? user}) async {
     _prefs = await SharedPreferences.getInstance();
     await _prefs.setString(_tokenKey, token);
-    if (user != null) {
-      await _prefs.setString(_userKey, jsonEncode(user.toJson()));
+    // Always prefer the persisted user (saved by ssoInit with the real HanapGawa UUID).
+    // Fall back to `user` only on first launch when prefs is empty — ssoInit will
+    // overwrite prefs with the correct HanapGawa UUID before the app renders.
+    final raw = _prefs.getString(_userKey);
+    if (raw != null) {
+      storedUser = SessionUser.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    } else if (user != null) {
       storedUser = user;
-    } else {
-      final raw = _prefs.getString(_userKey);
-      if (raw != null) {
-        storedUser = SessionUser.fromJson(jsonDecode(raw) as Map<String, dynamic>);
-      }
+      // Don't persist — ssoInit will save the correct HanapGawa user to prefs.
     }
   }
 
@@ -995,6 +1050,10 @@ class MarketplaceApi {
 
   static const _timeout = Duration(seconds: 90);
 
+  Future<http.Response> _fetch(Future<http.Response> Function() request) async {
+    return request();
+  }
+
   Future<Map<String, dynamic>> _get(
     String path, {
     bool auth = false,
@@ -1003,7 +1062,7 @@ class MarketplaceApi {
     final uri = Uri.parse('$_baseUrl$path')
         .replace(queryParameters: query.isEmpty ? null : query);
     return _decode(
-        await http.get(uri, headers: _headers(auth)).timeout(_timeout));
+        await _fetch(() => http.get(uri, headers: _headers(auth)).timeout(_timeout)));
   }
 
   Future<Map<String, dynamic>> _post(
@@ -1011,57 +1070,57 @@ class MarketplaceApi {
     Map<String, dynamic> body, {
     bool auth = false,
   }) async =>
-      _decode(await http
+      _decode(await _fetch(() => http
           .post(
             Uri.parse('$_baseUrl$path'),
             headers: _headers(auth),
             body: jsonEncode(body),
           )
-          .timeout(_timeout));
+          .timeout(_timeout)));
 
   Future<Map<String, dynamic>> _patch(
     String path,
     Map<String, dynamic> body, {
     bool auth = false,
   }) async =>
-      _decode(await http
+      _decode(await _fetch(() => http
           .patch(
             Uri.parse('$_baseUrl$path'),
             headers: _headers(auth),
             body: jsonEncode(body),
           )
-          .timeout(_timeout));
+          .timeout(_timeout)));
 
   Future<Map<String, dynamic>> _put(
     String path,
     Map<String, dynamic> body, {
     bool auth = false,
   }) async =>
-      _decode(await http
+      _decode(await _fetch(() => http
           .put(
             Uri.parse('$_baseUrl$path'),
             headers: _headers(auth),
             body: jsonEncode(body),
           )
-          .timeout(_timeout));
+          .timeout(_timeout)));
 
   Future<void> _deleteVoid(String path,
       {bool auth = false, Map<String, dynamic>? body}) async {
-    final response = await http.delete(
-      Uri.parse('$_baseUrl$path'),
-      headers: _headers(auth),
-      body: body == null ? null : jsonEncode(body),
-    );
+    final response = await _fetch(() => http.delete(
+          Uri.parse('$_baseUrl$path'),
+          headers: _headers(auth),
+          body: body == null ? null : jsonEncode(body),
+        ));
     if (response.statusCode >= 200 && response.statusCode < 300) return;
     _decode(response);
   }
 
   Future<Map<String, dynamic>> _delete2(String path,
       {bool auth = false}) async {
-    final response = await http.delete(
-      Uri.parse('$_baseUrl$path'),
-      headers: _headers(auth),
-    );
+    final response = await _fetch(() => http.delete(
+          Uri.parse('$_baseUrl$path'),
+          headers: _headers(auth),
+        ));
     return _decode(response);
   }
 
@@ -1077,6 +1136,9 @@ class MarketplaceApi {
           ? <String, dynamic>{}
           : jsonDecode(response.body) as Map<String, dynamic>;
     } catch (_) {
+      if (response.statusCode == 429) {
+        throw Exception('Too many requests (429). Please wait a moment and try again.');
+      }
       // Server returned non-JSON (HTML error page, proxy page, etc.)
       throw Exception(
           'Server is not responding correctly (HTTP ${response.statusCode}). '

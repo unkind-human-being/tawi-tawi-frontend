@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/course_provider.dart';
 import '../../services/api_service.dart';
 
 /// Teacher-only directory: browse every teacher and every student with their
@@ -31,12 +32,27 @@ class _DirectoryScreenState extends State<DirectoryScreen>
   Future<void> _load() async {
     if (mounted) setState(() => _loading = true);
     final auth = context.read<AuthProvider>();
+    final courseProv = context.read<CourseProvider>();
+    await courseProv.fetchCourses();
     final teachers = await auth.getAllTeachers();
     final students = await auth.getAllStudents();
     final results = await _api.getStudents();
 
+    // Scope a student's shown progress to the viewing teacher's course.
+    final teacherCourse = (auth.currentUser?['course'] ?? '').toString().trim();
+    final myCourseIds = courseProv.courses
+        .where((c) => (c['title'] ?? '').toString() == teacherCourse)
+        .map((c) => c['id'].toString())
+        .toSet();
+    final scoped = (teacherCourse.isEmpty || myCourseIds.isEmpty)
+        ? results
+        : results.where((r) {
+            final cid = (r['course_id'] ?? '').toString();
+            return cid.isEmpty || myCourseIds.contains(cid);
+          }).toList();
+
     final grouped = <String, List<Map<String, dynamic>>>{};
-    for (final r in results) {
+    for (final r in scoped) {
       final id = r['student_id']?.toString() ?? '';
       if (id.isEmpty) continue;
       grouped.putIfAbsent(id, () => []).add(r);

@@ -26,6 +26,20 @@ class CourseProvider extends ChangeNotifier {
       _courses.isNotEmpty ? _courses : _defaults;
   bool get isLoading => _isLoading;
 
+  // Guard async notifyListeners() after dispose (leaving the module mid-fetch).
+  bool _disposed = false;
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
+  @override
+  void notifyListeners() {
+    if (_disposed) return;
+    super.notifyListeners();
+  }
+
   /// Resolves a course id to its title (or '' / the raw id if unknown).
   String titleFor(String? id) {
     if (id == null || id.isEmpty) return '';
@@ -65,6 +79,26 @@ class CourseProvider extends ChangeNotifier {
     final id = 'course-${const Uuid().v4().substring(0, 8)}';
     final ok = await _api.addCourse({'id': id, 'title': t});
     if (ok) await fetchCourses();
+    return ok;
+  }
+
+  Future<bool> updateCourse(String id, String title) async {
+    final t = title.trim();
+    if (t.isEmpty) return false;
+    final ok = await _api.updateCourse(id, {'title': t});
+    if (ok) {
+      final i = _courses.indexWhere((c) => c['id'] == id);
+      if (i != -1) {
+        _courses[i] = {..._courses[i], 'title': t};
+        _sort();
+      }
+      try {
+        final db = await _db.database;
+        await db.update('courses', {'title': t},
+            where: 'id = ?', whereArgs: [id]);
+      } catch (_) {}
+      notifyListeners();
+    }
     return ok;
   }
 

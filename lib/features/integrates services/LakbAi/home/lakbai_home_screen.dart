@@ -5,7 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../providers/lakbai_auth_provider.dart';
 
 class LakbaiHomeScreen extends StatelessWidget {
-  final Function(int)? onNavigateTab; // Receives the tab switcher function
+  final Function(int)? onNavigateTab;
 
   const LakbaiHomeScreen({super.key, this.onNavigateTab});
 
@@ -17,7 +17,9 @@ class LakbaiHomeScreen extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(16)),
+            decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(16)),
             child: Icon(icon, color: Colors.white, size: 28),
           ),
           const SizedBox(width: 20),
@@ -25,9 +27,17 @@ class LakbaiHomeScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                Text(title,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18)),
                 const SizedBox(height: 8),
-                Text(description, style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 15, height: 1.5)),
+                Text(description,
+                    style: TextStyle(
+                        color: Colors.white.withOpacity(0.8),
+                        fontSize: 15,
+                        height: 1.5)),
               ],
             ),
           )
@@ -36,36 +46,106 @@ class LakbaiHomeScreen extends StatelessWidget {
     ).animate().fadeIn(duration: 600.ms).slideX(begin: 0.1);
   }
 
-  // ✅ NEW: Developer Card Builder
-  Widget _buildDeveloperCard(String name, String role) {
+  // ✅ 1. THE MODERN FULL-SCREEN DEV CARD
+  Widget _buildModernDevCard(String name, String role, String description, String imagePath, int delay) {
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
-      ),
-      child: Row(
+      height: 450, // Massive height to fill the screen on scroll
+      margin: const EdgeInsets.only(bottom: 40),
+      child: Stack(
         children: [
-          CircleAvatar(
-            radius: 30,
-            backgroundColor: const Color(0xFF059669).withOpacity(0.2),
-            child: const Icon(LucideIcons.user, color: Color(0xFF34D399), size: 30),
+          // The Background Image
+          ClipRRect(
+            borderRadius: BorderRadius.circular(32),
+            child: Image.asset(
+              imagePath,
+              width: double.infinity,
+              height: double.infinity,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(
+                color: const Color(0xFF064E3B),
+                child: const Icon(LucideIcons.user, size: 100, color: Colors.white24),
+              ),
+            ),
           ),
-          const SizedBox(width: 16),
-          Expanded(
+          // Cinematic Gradient Overlay (Black at bottom, transparent at top)
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(32),
+              gradient: LinearGradient(
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
+                colors: [
+                  Colors.black.withOpacity(0.95),
+                  Colors.black.withOpacity(0.4),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+          // The Text Content at the Bottom
+          Positioned(
+            bottom: 32,
+            left: 24,
+            right: 24,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-                const SizedBox(height: 4),
-                Text(role, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF34D399).withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFF34D399).withOpacity(0.5))
+                  ),
+                  child: Text(
+                    role.toUpperCase(),
+                    style: const TextStyle(color: Color(0xFF34D399), fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.5),
+                  ),
+                ).animate(delay: Duration(milliseconds: delay + 200)).fadeIn().slideY(begin: 0.5),
+                const SizedBox(height: 12),
+                Text(
+                  name,
+                  style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900, height: 1.1),
+                ).animate(delay: Duration(milliseconds: delay + 300)).fadeIn().slideX(begin: 0.2),
+                const SizedBox(height: 12),
+                Text(
+                  description,
+                  style: const TextStyle(color: Colors.white70, fontSize: 15, height: 1.5),
+                ).animate(delay: Duration(milliseconds: delay + 400)).fadeIn(),
               ],
             ),
           ),
         ],
       ),
-    ).animate().fadeIn(duration: 500.ms).slideX(begin: 0.1);
+    ).animate(delay: Duration(milliseconds: delay)).fadeIn(duration: 800.ms).scale(begin: const Offset(0.95, 0.95));
+  }
+
+  // ✅ 2. THE "ALL TOGETHER" SUMMARY TEAM ROW
+  Widget _buildTeamSummary(String imagePath, String lastName, String shortRole) {
+    return Column(
+      children: [
+        Container(
+          width: 80,
+          height: 80,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: const Color(0xFF34D399), width: 3),
+            image: DecorationImage(
+              image: AssetImage(imagePath),
+              fit: BoxFit.cover,
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(lastName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+        const SizedBox(height: 4),
+        Text(
+          shortRole,
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: Colors.white54, fontSize: 12),
+        ),
+      ],
+    );
   }
 
   @override
@@ -74,12 +154,17 @@ class LakbaiHomeScreen extends StatelessWidget {
     final bool isLoggedIn = authProvider.user != null;
     final size = MediaQuery.of(context).size;
 
-    final String userFirstName = isLoggedIn ? (authProvider.user!['name']?.split(' ')[0] ?? 'Explorer') : 'Explorer';
-    final String userRole = isLoggedIn ? (authProvider.user!['role']?.toString().toUpperCase() ?? 'TOURIST') : 'TOURIST';
-    final String userEmail = isLoggedIn ? (authProvider.user!['email'] ?? '') : '';
+    final String userFirstName = isLoggedIn
+        ? (authProvider.user!['name']?.split(' ')[0] ?? 'Explorer')
+        : 'Explorer';
+    final String userRole = isLoggedIn
+        ? (authProvider.user!['role']?.toString().toUpperCase() ?? 'TOURIST')
+        : 'TOURIST';
+    final String userEmail =
+        isLoggedIn ? (authProvider.user!['email'] ?? '') : '';
 
     return Scaffold(
-      backgroundColor: const Color(0xFF022C22), 
+      backgroundColor: const Color(0xFF022C22),
       drawer: isLoggedIn
           ? Drawer(
               backgroundColor: const Color(0xFF022C22),
@@ -112,10 +197,10 @@ class LakbaiHomeScreen extends StatelessWidget {
               ),
             )
           : null,
-
       body: SingleChildScrollView(
         child: Column(
           children: [
+            // HERO SECTION
             SizedBox(
               height: size.height,
               width: double.infinity,
@@ -123,9 +208,9 @@ class LakbaiHomeScreen extends StatelessWidget {
                 children: [
                   Positioned.fill(
                     child: Image.asset(
-                      'assets/lakbai/hero-bg.jpg', 
+                      'assets/lakbai/hero-bg.jpg',
                       fit: BoxFit.cover,
-                      color: Colors.black.withOpacity(0.5), 
+                      color: Colors.black.withOpacity(0.5),
                       colorBlendMode: BlendMode.darken,
                     ),
                   ),
@@ -142,7 +227,7 @@ class LakbaiHomeScreen extends StatelessWidget {
                             ),
                           ),
                           const Text('LakbAi', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.5)),
-                          const SizedBox(width: 48), 
+                          const SizedBox(width: 48),
                         ],
                       ),
                     ),
@@ -170,9 +255,7 @@ class LakbaiHomeScreen extends StatelessWidget {
                               Expanded(
                                 child: ElevatedButton(
                                   onPressed: () {
-                                    if (onNavigateTab != null) {
-                                      onNavigateTab!(1); 
-                                    }
+                                    if (onNavigateTab != null) onNavigateTab!(1);
                                   },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF059669),
@@ -186,9 +269,7 @@ class LakbaiHomeScreen extends StatelessWidget {
                               Expanded(
                                 child: OutlinedButton(
                                   onPressed: () {
-                                    if (onNavigateTab != null) {
-                                      onNavigateTab!(2); 
-                                    }
+                                    if (onNavigateTab != null) onNavigateTab!(2);
                                   },
                                   style: OutlinedButton.styleFrom(
                                     side: const BorderSide(color: Colors.white, width: 2),
@@ -223,11 +304,16 @@ class LakbaiHomeScreen extends StatelessWidget {
                 ],
               ),
             ),
+            
+            // WHY CHOOSE LAKBAI SECTION
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 80.0),
               decoration: const BoxDecoration(
-                gradient: LinearGradient(colors: [Color(0xFF064E3B), Color(0xFF022C22)], begin: Alignment.topCenter, end: Alignment.bottomCenter),
+                gradient: LinearGradient(
+                    colors: [Color(0xFF064E3B), Color(0xFF022C22)],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -238,32 +324,54 @@ class LakbaiHomeScreen extends StatelessWidget {
                   const SizedBox(height: 50),
                   _buildInfoRow(LucideIcons.sparkles, 'AI-Powered Planning', 'Generate personalized, day-by-day travel itineraries instantly using Gemini AI. It learns your preferences and builds the perfect trip.'),
                   _buildInfoRow(LucideIcons.wifiOff, 'Offline-First Capability', 'Save destinations and queue up edits even when you lose internet connection. Perfect for remote island hopping.'),
-                  _buildInfoRow(LucideIcons.checkCircle, 'Verified Local Spots', 'Discover hidden gems and destinations directly submitted and verified by local Tourism Offices.'),
+                  _buildInfoRow(LucideIcons.checkCircle, 'Verified Local Spots', 'Discover hidden gems and destinations verified by local Tourism Offices.'),
                 ],
               ),
             ),
-            // ✅ NEW: MEET THE DEVELOPERS SECTION
+            
+            // ✅ THE MODERN DEVELOPER SECTION
             Container(
               width: double.infinity,
               padding: const EdgeInsets.only(left: 24.0, right: 24.0, bottom: 80.0),
-              decoration: const BoxDecoration(
-                color: Color(0xFF022C22),
-              ),
+              decoration: const BoxDecoration(color: Color(0xFF022C22)),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Divider(color: Colors.white24, thickness: 1),
                   const SizedBox(height: 40),
-                  const Text('Meet the Developers', style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: 1.1)),
+                  const Text('Meet the Creators', style: TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.w900, letterSpacing: 1.1)),
                   const SizedBox(height: 10),
-                  const Text('The team behind the LakbAi integration.', style: TextStyle(color: Color(0xFFA7F3D0), fontSize: 18)),
-                  const SizedBox(height: 40),
+                  const Text('The visionaries behind the LakbAi Integration.', style: TextStyle(color: Color(0xFF34D399), fontSize: 16)),
+                  const SizedBox(height: 60),
+
+                  // 1. Cinematic Card for Daing
+                  _buildModernDevCard(
+                    'Hazzraze Sadhan Daing',
+                    'Lead Developer & AI',
+                    'Architecting the AI offline models.',
+                    'assets/lakbai/team/Daing.png',
+                    100
+                  ),
                   
-                  _buildDeveloperCard('Alnedzfar Sanaan', 'Lead Developer / UI/UX'),
-                  const SizedBox(height: 16),
-                  _buildDeveloperCard('Hazzraze Sadhan Daing', 'Full Stack Integration'),
-                  const SizedBox(height: 16),
-                  _buildDeveloperCard('Jericho Kohoyan', 'Backend Systems & Logic'),
+                  // 2. Cinematic Card for Sanaani
+                  _buildModernDevCard(
+                    'Alnedzfar Sanaani',
+                    'Frontend & UI/UX Design',
+                    'Crafting modern visual experience and interfaces you interact with today.',
+                    'assets/lakbai/team/Sanaani.png',
+                    200
+                  ),
+
+                  // 3. Cinematic Card for Kohoyan
+                  _buildModernDevCard(
+                    'Jericho Kohoyan',
+                    'Backend & Functionality',
+                    'Managing the databases, and ensuring functionality.',
+                    'assets/lakbai/team/Kohoyan.png',
+                    300
+                  ),
+
+                  const SizedBox(height: 40),
                 ],
               ),
             ),

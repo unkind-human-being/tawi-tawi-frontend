@@ -1,6 +1,4 @@
-// frontend/lib/config.dart
-
 class LakbaiAppConfig {
-  // Make sure there is NO trailing slash at the end of the URL!
-  static const String baseUrl = 'https://lakbai-jzcw.onrender.com/api'; 
+  static const String baseUrl = 'https://lakbai-backend-8w2z.onrender.com/api'; // Remove /api if your backend doesn't use it
+  static const String gatewaySecret = 'tawi-tawi-super-app-secret-2024'; // MUST match the backend fallback!
 }

@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 import '../auth/auth_provider.dart';
 
 // Integrated Services Imports
-import '../integrates services/LakbAi/widgets/lakbai_main_layout.dart';
+import '../integrates services/LakbAi/home/lakbai_gateway_screen.dart';
 import '../integrates services/social_health/app service introduction/shu_introduction.dart';
 import '../integrates services/hanap_gawa/app service introduction/introduction_screen.dart' as hanap_gawa_intro;
 import '../integrates services/TDLF-Educ/tdlf_educ_app.dart';
@@ -100,7 +100,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _navigateToService(BuildContext context, int index) {
     switch (index) {
       case 0:
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LakbaiMainLayout()));
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LakbaiGatewayScreen()));
         break;
       case 1:
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ShuIntroductionScreen()));
@@ -121,7 +121,13 @@ class _HomeScreenState extends State<HomeScreen> {
         );
         break;
       case 4:
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TdlfEducApp(guestMode: true)));
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => TdlfEducApp(
+            embedded: true,
+            hostEmail: context.read<AuthProvider>().userEmail,
+            hostName: context.read<AuthProvider>().userName,
+          ),
+        ));
         break;
       case 5:
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const zentromart.ZentromartLinkScreen()));
@@ -183,7 +189,7 @@ class _HomeScreenState extends State<HomeScreen> {
         icon: Icons.travel_explore_rounded,
         color: const Color(0xFFF59E0B),
         isDark: isDark,
-        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LakbaiMainLayout())), 
+        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LakbaiGatewayScreen())), 
       ),
       _buildServiceItem(
         title: 'Social Health',
@@ -225,7 +231,13 @@ class _HomeScreenState extends State<HomeScreen> {
         icon: Icons.school_rounded,
         color: const Color(0xFF3B82F6),
         isDark: isDark,
-        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TdlfEducApp(guestMode: true))),
+        onTap: () => Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => TdlfEducApp(
+            embedded: true,
+            hostEmail: context.read<AuthProvider>().userEmail,
+            hostName: context.read<AuthProvider>().userName,
+          ),
+        )),
       ),
       _buildServiceItem(
         title: 'ZentroMart',

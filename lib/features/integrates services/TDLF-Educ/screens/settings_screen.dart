@@ -148,6 +148,18 @@ class SettingsScreen extends StatelessWidget {
                       '• Dark mode support',
                       style: TextStyle(fontSize: 13, height: 1.6),
                     ),
+                    SizedBox(height: 12),
+                    Text(
+                      'Developers',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Abdu, Kamrashier Imlani\n'
+                      'Jumad, Harsamer Rabah\n'
+                      'Isbala, Ali-Risha Marjukin',
+                      style: TextStyle(fontSize: 13, height: 1.6),
+                    ),
                   ],
                 ),
               ),
@@ -248,62 +260,93 @@ class _LogoutTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Embedded in a host app (Tawi-Tawi): no auth here, so "Logout" becomes
-    // "Exit" which simply returns to the host.
-    final isGuest = context.watch<AuthProvider>().isGuest;
+    final embedded = context.watch<AuthProvider>().isEmbedded;
+    // Embedded (Tawi-Tawi): offer both "Back to Tawi-Tawi" (keeps you signed in)
+    // and an explicit "Log out". Standalone: just "Logout".
+    if (embedded) {
+      return Column(
+        children: [
+          const SizedBox(height: 6),
+          _tile(
+            context,
+            icon: Icons.arrow_back_rounded,
+            title: 'Back to Tawi-Tawi',
+            subtitle: 'Leave the module — stay signed in',
+            onTap: () => Navigator.of(context, rootNavigator: true).maybePop(),
+          ),
+          const SizedBox(height: 8),
+          _tile(
+            context,
+            icon: Icons.logout_rounded,
+            title: 'Log out',
+            subtitle: 'Sign out of this TDLF-Educ account',
+            onTap: () => _confirmLogout(context, embedded: true),
+          ),
+        ],
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: _tile(
+        context,
+        icon: Icons.logout_rounded,
+        title: 'Logout',
+        subtitle: 'Sign out of your account',
+        onTap: () => _confirmLogout(context, embedded: false),
+      ),
+    );
+  }
+
+  Widget _tile(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
     return Container(
-      margin: const EdgeInsets.only(top: 6),
       decoration: BoxDecoration(
         color: cs.errorContainer.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: cs.error.withValues(alpha: 0.25)),
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-        leading: Container(
-          width: 42,
-          height: 42,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFFFB7185), Color(0xFFE11D48)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+      clipBehavior: Clip.antiAlias,
+      child: Material(
+        color: Colors.transparent,
+        child: ListTile(
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+          leading: Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFFB7185), Color(0xFFE11D48)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(13),
             ),
-            borderRadius: BorderRadius.circular(13),
+            child: Icon(icon, color: Colors.white, size: 20),
           ),
-          child: Icon(isGuest ? Icons.arrow_back_rounded : Icons.logout_rounded,
-              color: Colors.white, size: 20),
+          title: Text(title,
+              style: TextStyle(
+                  fontSize: 14, fontWeight: FontWeight.w600, color: cs.error)),
+          subtitle: Text(subtitle,
+              style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          onTap: onTap,
         ),
-        title: Text(
-          isGuest ? 'Exit' : 'Logout',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: cs.error,
-          ),
-        ),
-        subtitle: Text(
-          isGuest ? 'Return to Tawi-Tawi' : 'Sign out of your account',
-          style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
-        ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        onTap: () =>
-            isGuest ? _exitModule(context) : _confirmLogout(context),
       ),
     );
   }
 
-  /// Leaves the embedded module and returns to the host super-app.
-  void _exitModule(BuildContext context) {
-    Navigator.of(context, rootNavigator: true).maybePop();
-  }
-
-  void _confirmLogout(BuildContext context) {
+  void _confirmLogout(BuildContext context, {required bool embedded}) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Logout'),
+        title: const Text('Log out'),
         content: const Text('Are you sure you want to sign out?'),
         actions: [
           TextButton(
@@ -313,16 +356,19 @@ class _LogoutTile extends StatelessWidget {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: cs.error),
             onPressed: () async {
+              final auth = context.read<AuthProvider>();
               Navigator.pop(ctx);
-              await context.read<AuthProvider>().logout();
-              if (context.mounted) {
-                Navigator.of(context).pushNamedAndRemoveUntil(
-                  '/login',
-                  (route) => false,
-                );
+              await auth.logout();
+              if (!context.mounted) return;
+              if (embedded) {
+                // Back to the host; re-entering will show the welcome again.
+                Navigator.of(context, rootNavigator: true).maybePop();
+              } else {
+                Navigator.of(context)
+                    .pushNamedAndRemoveUntil('/login', (route) => false);
               }
             },
-            child: const Text('Logout'),
+            child: const Text('Log out'),
           ),
         ],
       ),
