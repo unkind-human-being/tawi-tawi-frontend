@@ -10,11 +10,11 @@ class ApiConstants {
 
   static const String googleWebClientId = String.fromEnvironment(
     'GOOGLE_WEB_CLIENT_ID',
-    defaultValue: '',
+    defaultValue: '713602882888-55m8bq144pmq0rgfapq07rmnci6turq8.apps.googleusercontent.com',
   );
 
   static const String metaAppId = String.fromEnvironment(
     'META_APP_ID',
-    defaultValue: '',
+    defaultValue: '873964355733124',
   );
 }

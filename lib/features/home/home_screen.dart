@@ -536,6 +536,9 @@ class _ServiceGridCard extends StatelessWidget {
     final Color borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
     final Color textColor = isDark ? Colors.white : const Color(0xFF0F172A);
     final Color subtextColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+    
+    final Color iconColor = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569);
+    final Color iconBg = isDark ? const Color(0xFF334155).withOpacity(0.5) : const Color(0xFFF1F5F9);
 
     return Material(
       color: Colors.transparent,
@@ -562,13 +565,17 @@ class _ServiceGridCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 48,
-                height: 48,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(16),
+                  color: iconBg,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: isDark ? const Color(0xFF475569).withOpacity(0.5) : const Color(0xFFE2E8F0),
+                    width: 1,
+                  ),
                 ),
-                child: Icon(icon, color: color, size: 26),
+                child: Icon(icon, color: iconColor, size: 22),
               ),
               const Spacer(),
               Text(
@@ -625,6 +632,9 @@ class _ServiceListCard extends StatelessWidget {
     final Color textColor = isDark ? Colors.white : const Color(0xFF0F172A);
     final Color subtextColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
 
+    final Color iconColor = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569);
+    final Color iconBg = isDark ? const Color(0xFF334155).withOpacity(0.5) : const Color(0xFFF1F5F9);
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -649,13 +659,17 @@ class _ServiceListCard extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 52,
-                height: 52,
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(16),
+                  color: iconBg,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: isDark ? const Color(0xFF475569).withOpacity(0.5) : const Color(0xFFE2E8F0),
+                    width: 1,
+                  ),
                 ),
-                child: Icon(icon, color: color, size: 28),
+                child: Icon(icon, color: iconColor, size: 24),
               ),
               const SizedBox(width: 16),
               Expanded(

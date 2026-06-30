@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Kawman</string>
+    <string name="facebook_app_id">873964355733124</string>
+    <!-- Replace this with your actual Client Token from Facebook Developer Portal -> Settings -> Advanced -->
+    <string name="facebook_client_token">23af7c18606449c2778fcbb969dc0867</string>
+    <string name="fb_login_protocol_scheme">fb873964355733124</string>
+</resources>

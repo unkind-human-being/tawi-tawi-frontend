@@ -7,10 +7,8 @@ import '../../core/models/models.dart';
 import '../../core/theme.dart';
 import '../../shared/widgets/message_banner.dart';
 
+import '../../../../core/constants/api_constants.dart';
 import 'package:flutter/foundation.dart';
-
-const String _googleWebClientId =
-    '1051761935414-p8lv7ceqb0qki482upci225ebukgm21n.apps.googleusercontent.com';
 
 bool _googleInitialized = false;
 
@@ -19,11 +17,11 @@ Future<void> _initializeGoogleSignIn() async {
 
   if (kIsWeb) {
     await GoogleSignIn.instance.initialize(
-      clientId: _googleWebClientId,
+      clientId: ApiConstants.googleWebClientId,
     );
   } else {
     await GoogleSignIn.instance.initialize(
-      serverClientId: _googleWebClientId,
+      serverClientId: ApiConstants.googleWebClientId,
     );
   }
 
